@@ -1,0 +1,2073 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>星海指挥官 · Stellar Command</title>
+<style>
+/* ============ 主题与基础 ============ */
+:root{
+  --bg:#05080f;
+  --panel:rgba(10,17,30,0.78);
+  --panel-solid:#0a1320;
+  --line:rgba(96,160,222,0.28);
+  --line-strong:rgba(120,190,255,0.55);
+  --txt:#d8e6f4;
+  --txt-dim:#8aa0b8;
+  --txt-faint:#5c7088;
+  --cyan:#5ad1ff;
+  --cyan-deep:#2b91d6;
+  --green:#52e08a;
+  --gold1:#e7b94a;
+  --gold2:#b8841f;
+  --danger:#ff6b6b;
+  --hud-blur:blur(6px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);
+  font-family:"PingFang SC","Microsoft YaHei","Noto Sans CJK SC","Segoe UI",system-ui,sans-serif;
+  color:var(--txt);user-select:none}
+canvas{display:block}
+#scene{position:fixed;inset:0;z-index:0}
+#hud{position:fixed;inset:0;z-index:5;pointer-events:none}
+#hud .clk{pointer-events:auto}
+button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:none}
+.mono{font-family:"Bahnschrift","DIN Alternate","Eurostile","Segoe UI",sans-serif;
+  font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.glow-txt{text-shadow:0 0 10px rgba(90,209,255,.55)}
+
+/* ============ 顶部栏 ============ */
+#topbar{position:absolute;top:0;left:0;right:0;height:54px;display:flex;align-items:center;
+  gap:10px;padding:0 14px;background:linear-gradient(180deg,rgba(4,8,16,.92),rgba(4,8,16,0));}
+.commander{display:flex;align-items:center;gap:10px;pointer-events:auto}
+.avatar{width:42px;height:42px;border-radius:7px;background:linear-gradient(145deg,#1b2738,#0c1422);
+  border:1px solid var(--line-strong);display:flex;align-items:center;justify-content:center;position:relative;
+  box-shadow:0 0 14px rgba(60,140,220,.25)}
+.avatar svg{width:26px;height:26px;opacity:.92}
+.cmd-info{line-height:1.15}
+.cmd-info .name{font-size:14px;font-weight:600}
+.cmd-info .lv{font-size:11px;color:var(--gold1);font-weight:600}
+.xpbar{width:118px;height:5px;border-radius:3px;background:rgba(255,255,255,.08);margin-top:4px;overflow:hidden;
+  border:1px solid rgba(255,255,255,.06)}
+.xpbar>i{display:block;height:100%;background:linear-gradient(90deg,#3fa9f5,#7fdcff);border-radius:3px;
+  box-shadow:0 0 8px rgba(90,200,255,.6)}
+.xp-num{font-size:9.5px;color:var(--txt-faint);margin-top:1px}
+
+.res-strip{display:flex;align-items:center;gap:7px;margin-left:6px;flex:1;justify-content:flex-start}
+.res{display:flex;align-items:center;gap:6px;padding:5px 11px 5px 7px;border-radius:20px;
+  background:var(--panel);border:1px solid var(--line);backdrop-filter:var(--hud-blur);pointer-events:auto;
+  min-width:96px}
+.res .ico{width:18px;height:18px;flex:none;display:flex;align-items:center;justify-content:center}
+.res .v{font-size:13px;font-weight:600;line-height:1}
+.res .r{font-size:9.5px;color:var(--green);line-height:1;margin-top:2px}
+.res .col{display:flex;flex-direction:column}
+
+.top-icons{display:flex;align-items:center;gap:8px;pointer-events:auto}
+.ticon{width:38px;height:38px;border-radius:8px;background:var(--panel);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;position:relative;transition:.15s;backdrop-filter:var(--hud-blur)}
+.ticon:hover{border-color:var(--line-strong);background:rgba(20,40,66,.8)}
+.ticon svg{width:20px;height:20px;opacity:.85}
+.badge{position:absolute;top:-3px;right:-3px;min-width:15px;height:15px;border-radius:8px;background:var(--danger);
+  font-size:9px;line-height:15px;text-align:center;padding:0 3px;color:#fff;font-weight:700;
+  box-shadow:0 0 6px rgba(255,80,80,.7)}
+
+/* ============ 左侧任务/星系 ============ */
+#leftcol{position:absolute;top:66px;left:14px;width:236px;display:flex;flex-direction:column;gap:10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;backdrop-filter:var(--hud-blur);
+  pointer-events:auto;overflow:hidden}
+.quest .hd{display:flex;align-items:center;gap:7px;padding:9px 11px;border-bottom:1px solid var(--line);
+  background:linear-gradient(90deg,rgba(40,80,130,.25),transparent)}
+.quest .hd svg{width:15px;height:15px;color:var(--gold1)}
+.quest .hd .t{font-size:11.5px;color:var(--gold1);font-weight:600;letter-spacing:.04em}
+.quest .body{padding:10px 12px}
+.quest .qname{font-size:14px;font-weight:600;margin-bottom:8px}
+.quest .qbtn{width:100%;padding:7px;border-radius:6px;font-size:12px;font-weight:600;
+  background:linear-gradient(180deg,rgba(60,120,190,.4),rgba(30,70,120,.4));border:1px solid var(--line-strong);
+  color:#cfe6ff;transition:.15s}
+.quest .qbtn:hover{background:linear-gradient(180deg,rgba(70,140,210,.6),rgba(40,90,150,.6))}
+
+.sys .body{padding:11px 12px}
+.sys .row1{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px}
+.sys .lbl{font-size:10.5px;color:var(--txt-dim)}
+.sys .sname{font-size:13px;font-weight:600;color:#cfe6ff}
+.sys .ctl-row{display:flex;justify-content:space-between;align-items:center;margin-top:8px;margin-bottom:5px}
+.sys .pct{font-size:13px;font-weight:700;color:var(--cyan)}
+.ctlbar{height:6px;border-radius:3px;background:rgba(255,255,255,.07);overflow:hidden}
+.ctlbar>i{display:block;height:100%;background:linear-gradient(90deg,#2b91d6,#7fdcff);
+  box-shadow:0 0 8px rgba(90,200,255,.5);transition:width .4s}
+
+/* ============ 右侧舰队列表 ============ */
+#fleetpanel{position:absolute;top:96px;right:14px;width:248px;max-height:calc(100% - 200px);
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;backdrop-filter:var(--hud-blur);
+  pointer-events:auto;display:flex;flex-direction:column;transition:transform .3s,opacity .3s}
+#fleetpanel.hidden{transform:translateX(115%);opacity:0;pointer-events:none}
+#fleetReopen{position:absolute;top:104px;right:0;display:none;align-items:center;gap:5px;padding:9px 11px 9px 13px;
+  background:linear-gradient(90deg,rgba(14,26,42,.5),rgba(20,38,60,.96));border:1px solid var(--line);border-right:none;
+  border-radius:9px 0 0 9px;color:var(--cyan);font-size:11.5px;letter-spacing:.5px;cursor:pointer;backdrop-filter:blur(8px);
+  box-shadow:-4px 0 16px rgba(0,0,0,.35);transition:background .15s,transform .15s}
+#fleetReopen.show{display:flex;animation:tabIn .3s ease}
+#fleetReopen:hover{background:linear-gradient(90deg,rgba(20,38,60,.7),rgba(28,52,80,1));transform:translateX(-2px)}
+@keyframes tabIn{from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1}}
+.fp-hd{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--line)}
+.fp-hd .t{font-size:13px;font-weight:600}
+.fp-hd .x{width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;color:var(--txt-dim)}
+.fp-hd .x:hover{background:rgba(255,255,255,.08);color:#fff}
+.fp-sub{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid var(--line);
+  background:linear-gradient(90deg,rgba(40,80,130,.18),transparent)}
+.fp-sub .nm{font-size:12px;color:#cfe6ff;font-weight:600}
+.fp-sub .pw{font-size:13px;font-weight:700;color:var(--cyan)}
+.fp-list{overflow-y:auto;padding:6px}
+.fp-list::-webkit-scrollbar{width:5px}.fp-list::-webkit-scrollbar-thumb{background:rgba(90,160,220,.3);border-radius:3px}
+.ship-row{display:flex;align-items:center;gap:9px;padding:8px;border-radius:7px;transition:.12s;cursor:pointer}
+.ship-row:hover{background:rgba(40,80,130,.28)}
+.ship-row.sel{background:rgba(50,100,160,.35);box-shadow:inset 0 0 0 1px var(--line-strong)}
+.ship-pic{width:48px;height:30px;border-radius:5px;background:linear-gradient(160deg,#16202f,#0a121e);
+  border:1px solid rgba(120,170,220,.2);flex:none;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.ship-pic svg{width:42px;height:24px}
+.ship-meta{flex:1;min-width:0;line-height:1.25}
+.ship-meta .nm{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ship-meta .nm small{color:var(--txt-dim);font-weight:400;font-size:10.5px}
+.ship-meta .pw{font-size:11px;color:var(--txt-dim)}
+.ship-meta .pw b{color:var(--cyan);font-weight:600}
+.ship-qty{font-size:11px;color:var(--gold1);font-weight:700;flex:none}
+
+/* ============ 底部工具栏 ============ */
+#dock{position:absolute;left:14px;bottom:14px;display:flex;gap:8px;pointer-events:auto}
+.dbtn{width:60px;height:60px;border-radius:10px;background:var(--panel);border:1px solid var(--line);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;transition:.15s;backdrop-filter:var(--hud-blur)}
+.dbtn:hover{border-color:var(--line-strong);background:rgba(22,44,72,.85);transform:translateY(-2px)}
+.dbtn svg{width:24px;height:24px;opacity:.88}
+.dbtn span{font-size:10.5px;color:var(--txt-dim)}
+.dbtn:hover span{color:#cfe6ff}
+
+/* ============ 出发面板 ============ */
+#launchpanel{position:absolute;right:14px;bottom:14px;display:flex;align-items:center;gap:0;pointer-events:auto;
+  background:var(--panel);border:1px solid var(--line);border-radius:11px;overflow:hidden;backdrop-filter:var(--hud-blur)}
+.lp-dest{display:flex;align-items:center;gap:10px;padding:11px 14px}
+.lp-orb{width:40px;height:40px;border-radius:50%;flex:none;position:relative;
+  background:radial-gradient(circle at 35% 35%,#7fd6ff,#1d5a9e 60%,#0a2845);
+  box-shadow:0 0 16px rgba(90,200,255,.55)}
+.lp-orb:after{content:"";position:absolute;inset:-5px;border-radius:50%;border:1px solid rgba(120,200,255,.4);
+  animation:spin 8s linear infinite}
+.lp-info{line-height:1.3}
+.lp-info .k{font-size:10px;color:var(--txt-dim)}
+.lp-info .dn{font-size:14px;font-weight:600;color:#cfe6ff}
+.lp-go{align-self:stretch;padding:0 26px;display:flex;align-items:center;justify-content:center;
+  font-size:16px;font-weight:700;letter-spacing:.12em;color:#2a1c00;
+  background:linear-gradient(180deg,var(--gold1),var(--gold2));transition:.15s;min-width:96px;text-align:center}
+.lp-go:hover{filter:brightness(1.12)}
+.lp-go:active{filter:brightness(.95)}
+.lp-go.busy{background:linear-gradient(180deg,#3a4658,#222c3a);color:#8aa0b8;cursor:default}
+
+/* ============ 日志 ============ */
+#log{position:absolute;left:14px;bottom:84px;width:560px;max-width:48vw;display:flex;flex-direction:column;gap:3px;
+  pointer-events:none}
+.logline{font-size:11.5px;line-height:1.5;color:var(--txt-dim);text-shadow:0 1px 4px #000;opacity:0;
+  animation:logIn .4s forwards}
+.logline .tag{font-weight:700;margin-right:5px}
+.logline .tag.sys{color:#7fdcff}.logline .tag.al{color:#ffcf6b}.logline .tag.ok{color:#52e08a}.logline .tag.warn{color:#ff8a6b}
+@keyframes logIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+
+/* ============ 通用弹窗 ============ */
+#modal{position:fixed;inset:0;z-index:30;display:none;align-items:center;justify-content:center;
+  background:rgba(2,5,11,.62);backdrop-filter:blur(3px);pointer-events:auto}
+#modal.show{display:flex}
+.win{width:min(880px,94vw);max-height:88vh;background:linear-gradient(180deg,#0c1626,#070d18);
+  border:1px solid var(--line-strong);border-radius:14px;display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 24px 80px rgba(0,0,0,.7),0 0 0 1px rgba(90,160,230,.08)}
+.win-hd{display:flex;align-items:center;gap:11px;padding:14px 18px;border-bottom:1px solid var(--line);
+  background:linear-gradient(90deg,rgba(40,80,130,.25),transparent)}
+.win-hd svg{width:20px;height:20px;color:var(--cyan)}
+.win-hd .t{font-size:16px;font-weight:600;flex:1}
+.win-hd .sub{font-size:11px;color:var(--txt-dim)}
+.win-x{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--txt-dim)}
+.win-x:hover{background:rgba(255,255,255,.08);color:#fff}
+.win-body{padding:16px 18px;overflow-y:auto}
+.win-body::-webkit-scrollbar{width:7px}.win-body::-webkit-scrollbar-thumb{background:rgba(90,160,220,.3);border-radius:4px}
+
+/* 建造/研究 卡片网格 */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:12px}
+.bcard{background:rgba(12,22,38,.7);border:1px solid var(--line);border-radius:10px;padding:12px;
+  display:flex;flex-direction:column;gap:9px;transition:.15s}
+.bcard:hover{border-color:var(--line-strong)}
+.bcard .top{display:flex;gap:10px;align-items:center}
+.bcard .pic{width:62px;height:40px;border-radius:6px;background:linear-gradient(160deg,#16202f,#0a121e);
+  border:1px solid rgba(120,170,220,.2);flex:none;display:flex;align-items:center;justify-content:center}
+.bcard .pic svg{width:54px;height:30px}
+.bcard .nm{font-size:13.5px;font-weight:600}
+.bcard .nm small{color:var(--txt-dim);font-weight:400;font-size:11px;display:block;margin-top:1px}
+.bcard .pw{font-size:11px;color:var(--cyan);margin-top:2px;font-weight:600}
+.costs{display:flex;flex-wrap:wrap;gap:5px 10px;font-size:11px}
+.cost{display:flex;align-items:center;gap:4px;color:var(--txt-dim)}
+.cost svg,.cost .ic{width:13px;height:13px}
+.cost.no{color:var(--danger)}
+.bcard .act{display:flex;align-items:center;gap:8px;margin-top:2px}
+.bcard .qn{font-size:11px;color:var(--gold1);font-weight:600}
+.btn{padding:7px 12px;border-radius:6px;font-size:12px;font-weight:600;transition:.15s;border:1px solid var(--line-strong);
+  background:linear-gradient(180deg,rgba(55,115,185,.45),rgba(28,68,118,.45));color:#cfe6ff;flex:1;text-align:center}
+.btn:hover{background:linear-gradient(180deg,rgba(70,140,210,.65),rgba(40,90,150,.65))}
+.btn:disabled,.btn.dis{opacity:.4;cursor:not-allowed;filter:grayscale(.4)}
+.btn.gold{background:linear-gradient(180deg,var(--gold1),var(--gold2));color:#2a1c00;border-color:rgba(231,185,74,.6)}
+.btn.ghost{background:rgba(255,255,255,.04);color:var(--txt-dim)}
+.timebar{height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:2px}
+.timebar>i{display:block;height:100%;background:linear-gradient(90deg,#3fa9f5,#7fdcff);box-shadow:0 0 6px rgba(90,200,255,.5)}
+
+/* 研究节点 */
+.tech{position:relative}
+.tech .lvl{font-size:11px;color:var(--gold1);font-weight:700}
+.tech .eff{font-size:11.5px;color:var(--green);margin:2px 0}
+.tech .desc{font-size:11px;color:var(--txt-dim);line-height:1.4}
+
+/* 贸易 */
+.trade-wrap{display:flex;flex-direction:column;gap:14px}
+.trade-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.sel-res{display:flex;gap:6px;flex-wrap:wrap}
+.res-chip{display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;border:1px solid var(--line);
+  background:rgba(12,22,38,.6);font-size:12px;transition:.12s}
+.res-chip:hover{border-color:var(--line-strong)}
+.res-chip.on{border-color:var(--cyan);background:rgba(40,90,140,.4);box-shadow:0 0 0 1px var(--cyan)}
+.res-chip svg,.res-chip .ic{width:15px;height:15px}
+.amt-in{background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:7px;padding:9px 12px;color:#fff;
+  font-size:14px;width:160px;font-variant-numeric:tabular-nums}
+.amt-in:focus{outline:none;border-color:var(--cyan)}
+.trade-note{font-size:12px;color:var(--txt-dim);line-height:1.5;padding:12px;border-radius:8px;
+  background:rgba(12,22,38,.5);border:1px solid var(--line)}
+.trade-note b{color:var(--cyan)}
+
+/* 星图 */
+.map-wrap{position:relative;width:100%;height:430px;border-radius:12px;overflow:hidden;
+  background:radial-gradient(120% 100% at 70% 30%,#0d1d33,#060c16);border:1px solid var(--line)}
+.map-node{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer}
+.map-dot{width:26px;height:26px;border-radius:50%;border:2px solid rgba(120,200,255,.5);
+  background:radial-gradient(circle at 35% 35%,#7fd6ff,#1d5a9e);box-shadow:0 0 14px rgba(90,200,255,.5);transition:.15s}
+.map-node:hover .map-dot{transform:scale(1.18)}
+.map-node.cur .map-dot{border-color:var(--gold1);box-shadow:0 0 18px rgba(231,185,74,.7)}
+.map-node.locked .map-dot{filter:grayscale(1) brightness(.6);background:radial-gradient(circle at 35% 35%,#5a6470,#2a3038)}
+.map-node .ml{font-size:11px;color:#cfe6ff;text-shadow:0 1px 4px #000;white-space:nowrap}
+.map-node .mp{font-size:9.5px;color:var(--txt-dim);text-shadow:0 1px 3px #000}
+.map-line{position:absolute;height:1px;background:linear-gradient(90deg,rgba(120,200,255,.05),rgba(120,200,255,.35),rgba(120,200,255,.05));transform-origin:left center}
+.map-info{position:absolute;left:14px;bottom:14px;right:14px;background:rgba(6,12,22,.85);border:1px solid var(--line);
+  border-radius:10px;padding:12px 14px;backdrop-filter:blur(4px);display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.map-info .mi-nm{font-size:15px;font-weight:600;color:#cfe6ff}
+.map-info .mi-row{font-size:11.5px;color:var(--txt-dim)}
+.map-info .mi-row b{color:var(--cyan)}
+.map-info .spacer{flex:1}
+
+/* 仓库/通用列表 */
+.kv-list{display:flex;flex-direction:column;gap:9px}
+.kv{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:9px;border:1px solid var(--line);
+  background:rgba(12,22,38,.6)}
+.kv .kic{width:30px;height:30px;display:flex;align-items:center;justify-content:center;flex:none}
+.kv .kic svg,.kv .kic .ic{width:22px;height:22px}
+.kv .kn{flex:1;font-size:13px;font-weight:600}
+.kv .kn small{display:block;color:var(--txt-dim);font-weight:400;font-size:11px;margin-top:1px}
+.kv .kvv{font-size:14px;font-weight:700;color:var(--cyan)}
+.bar-mini{height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;width:120px;margin-top:5px}
+.bar-mini>i{display:block;height:100%;background:linear-gradient(90deg,#2b91d6,#7fdcff)}
+
+/* 设置 */
+.setrow{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--line)}
+.setrow .sl{font-size:13px}.setrow .sl small{display:block;color:var(--txt-dim);font-size:11px;margin-top:2px}
+.toggle{width:46px;height:25px;border-radius:13px;background:rgba(255,255,255,.12);position:relative;transition:.18s;flex:none}
+.toggle.on{background:var(--cyan-deep)}
+.toggle:after{content:"";position:absolute;top:2px;left:2px;width:21px;height:21px;border-radius:50%;background:#fff;transition:.18s}
+.toggle.on:after{left:23px}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{padding:7px 16px;font-size:12px;color:var(--txt-dim);transition:.12s}
+.seg button.on{background:var(--cyan-deep);color:#fff;font-weight:600}
+
+/* toast */
+#toast{position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:60;display:flex;flex-direction:column;
+  gap:8px;align-items:center;pointer-events:none}
+.tmsg{background:rgba(8,16,28,.95);border:1px solid var(--line-strong);border-radius:10px;padding:10px 18px;
+  font-size:13px;font-weight:600;color:#dceaf8;box-shadow:0 8px 28px rgba(0,0,0,.6);opacity:0;
+  animation:toastIn .3s forwards,toastOut .3s 2.4s forwards;display:flex;align-items:center;gap:9px}
+.tmsg svg{width:17px;height:17px}
+.tmsg.ok{border-color:rgba(82,224,138,.6)}.tmsg.ok svg{color:var(--green)}
+.tmsg.warn{border-color:rgba(255,138,107,.6)}.tmsg.warn svg{color:#ff8a6b}
+@keyframes toastIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
+@keyframes toastOut{to{opacity:0;transform:translateY(-12px)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* 载入屏 */
+#loader{position:fixed;inset:0;z-index:100;background:#05080f;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:22px;transition:opacity .6s}
+#loader.gone{opacity:0;pointer-events:none}
+.l-title{font-size:30px;font-weight:700;letter-spacing:.32em;color:#cfe6ff;text-shadow:0 0 26px rgba(90,200,255,.55)}
+.l-sub{font-size:12px;color:var(--txt-faint);letter-spacing:.5em;margin-top:-12px}
+.l-bar{width:230px;height:4px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden}
+.l-bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#2b91d6,#7fdcff);
+  box-shadow:0 0 10px rgba(90,200,255,.6);transition:width .25s}
+.l-status{font-size:11px;color:var(--txt-faint);letter-spacing:.1em;height:14px}
+#err{position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;background:#05080f;
+  text-align:center;padding:30px;flex-direction:column;gap:14px}
+#err .et{font-size:18px;color:#ff8a6b;font-weight:600}
+#err .ed{font-size:13px;color:var(--txt-dim);line-height:1.7;max-width:440px}
+
+/* 顶部提示条 / 进行中任务 */
+#voyage{position:absolute;top:60px;left:50%;transform:translateX(-50%);z-index:6;pointer-events:none;
+  background:rgba(8,16,28,.9);border:1px solid var(--line-strong);border-radius:10px;padding:9px 18px;
+  display:none;align-items:center;gap:12px;box-shadow:0 6px 24px rgba(0,0,0,.5)}
+#voyage.show{display:flex}
+#voyage .vp{font-size:12.5px;font-weight:600;color:#cfe6ff}
+#voyage .vbar{width:160px;height:5px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden}
+#voyage .vbar>i{display:block;height:100%;background:linear-gradient(90deg,var(--gold1),#ffe39a);box-shadow:0 0 8px rgba(231,185,74,.6)}
+
+@media (max-width:760px){
+  #log{max-width:60vw;width:auto;bottom:78px}
+  .res-strip{overflow-x:auto;flex-wrap:nowrap}
+  #dock{flex-wrap:wrap;max-width:200px}
+  .dbtn{width:52px;height:52px}
+}
+/* ====================== 战斗 HUD ====================== */
+#battle{position:fixed;inset:0;z-index:20;display:none;pointer-events:none;font-family:inherit}
+#battle.show{display:block}
+#battle .b-top{position:absolute;top:14px;left:50%;transform:translateX(-50%);width:min(840px,94vw);
+  display:flex;align-items:center;gap:12px;pointer-events:none}
+#battle .b-bar{flex:1;height:30px;border-radius:8px;background:rgba(8,14,24,.72);border:1px solid var(--line);
+  position:relative;overflow:hidden;backdrop-filter:blur(8px);box-shadow:0 4px 20px rgba(0,0,0,.4)}
+#battle .b-bar .fill{position:absolute;top:0;bottom:0;transition:width .18s linear}
+#battle .b-ally .fill{left:0;background:linear-gradient(90deg,#1d6fae,#5ad1ff)}
+#battle .b-enemy{transform:scaleX(-1)}
+#battle .b-enemy .fill{left:0;background:linear-gradient(90deg,#8a2230,#ff5a4a)}
+#battle .b-bar .lab{position:absolute;top:0;bottom:0;display:flex;align-items:center;gap:7px;padding:0 11px;
+  font-size:12px;font-weight:600;letter-spacing:.5px;color:#eaf4ff;z-index:2;text-shadow:0 1px 3px rgba(0,0,0,.7)}
+#battle .b-enemy .lab{transform:scaleX(-1);right:0;left:auto;flex-direction:row-reverse}
+#battle .b-bar .cnt{font-family:'SFMono-Regular',ui-monospace,monospace;font-size:11px;opacity:.85;font-weight:500}
+#battle .b-vs{flex:none;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:800;font-style:italic;color:#ffd98a;background:radial-gradient(circle,rgba(30,42,64,.95),rgba(12,20,34,.95));
+  border:1.5px solid rgba(255,210,140,.5);box-shadow:0 0 18px rgba(255,200,120,.35)}
+#battle .b-sub{position:absolute;top:54px;left:50%;transform:translateX(-50%);font-size:11.5px;color:var(--txt-dim);
+  letter-spacing:1px;text-shadow:0 1px 4px #000}
+#battle .b-log{position:absolute;left:14px;bottom:74px;width:min(380px,70vw);display:flex;flex-direction:column;gap:4px;pointer-events:none}
+#battle .b-log .bl{font-size:11.5px;line-height:1.5;padding:5px 9px;border-radius:6px;background:rgba(8,14,24,.6);
+  border-left:2px solid var(--line);backdrop-filter:blur(4px);animation:blIn .3s ease;color:#cfe0f2}
+#battle .b-log .bl.ok{border-left-color:#46d39a;color:#bff0d8}
+#battle .b-log .bl.warn{border-left-color:#ffb04a;color:#ffdca8}
+#battle .b-log .bl b{color:#fff}
+@keyframes blIn{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:translateX(0)}}
+#battle .b-ctrl{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:10px;align-items:center;pointer-events:auto}
+#battle .b-seg{display:flex;background:rgba(8,14,24,.72);border:1px solid var(--line);border-radius:9px;overflow:hidden;backdrop-filter:blur(8px)}
+#battle .b-seg button{padding:8px 14px;font-size:12px;color:var(--txt-dim);background:none;border:none;cursor:pointer;font-family:inherit;font-weight:600}
+#battle .b-seg button.on{background:linear-gradient(180deg,rgba(90,209,255,.22),rgba(90,209,255,.08));color:#bfeaff}
+#battle .b-seg button:hover{color:#fff}
+#battle .b-retreat{padding:9px 16px;font-size:12px;font-weight:600;color:#ffb4a4;background:rgba(40,16,16,.6);
+  border:1px solid rgba(255,90,74,.4);border-radius:9px;cursor:pointer;font-family:inherit;backdrop-filter:blur(8px)}
+#battle .b-retreat:hover{background:rgba(60,20,20,.85);color:#fff}
+#battle .b-result{position:absolute;inset:0;display:none;align-items:center;justify-content:center;pointer-events:auto;
+  background:radial-gradient(circle at 50% 40%,rgba(4,8,16,.4),rgba(2,5,12,.82))}
+#battle .b-result.show{display:flex;animation:fadeIn .4s ease}
+#battle .b-card{width:min(420px,90vw);background:linear-gradient(180deg,rgba(18,28,44,.97),rgba(10,16,28,.98));
+  border:1px solid var(--line);border-radius:16px;padding:26px 24px;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.6)}
+#battle .b-card .rt{font-size:26px;font-weight:800;letter-spacing:3px;margin-bottom:4px}
+#battle .b-card.win .rt{color:#7fe0b0;text-shadow:0 0 24px rgba(90,230,160,.5)}
+#battle .b-card.lose .rt{color:#ff8a7a;text-shadow:0 0 24px rgba(255,100,80,.4)}
+#battle .b-card .rsub{font-size:12px;color:var(--txt-dim);margin-bottom:18px;letter-spacing:1px}
+#battle .b-card .rstats{display:flex;gap:10px;margin-bottom:18px}
+#battle .b-card .rstat{flex:1;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:10px;padding:11px 8px}
+#battle .b-card .rstat .v{font-family:ui-monospace,monospace;font-size:19px;font-weight:700;color:#eaf4ff}
+#battle .b-card .rstat .k{font-size:10.5px;color:var(--txt-dim);margin-top:3px}
+#battle .b-card .rrewards{font-size:12px;color:#bff0d8;line-height:1.7;margin-bottom:18px;min-height:18px}
+#battle .b-card .rbtn{width:100%;padding:13px;border:none;border-radius:11px;font-size:14px;font-weight:700;cursor:pointer;
+  font-family:inherit;letter-spacing:1px;background:linear-gradient(180deg,#ffd98a,#e0a93f);color:#241a04;
+  box-shadow:0 8px 24px rgba(224,169,63,.3)}
+#battle .b-card .rbtn:hover{filter:brightness(1.08)}
+@media (max-width:760px){
+  #battle .b-top{top:10px}
+  #battle .b-bar{height:26px}
+  #battle .b-vs{width:38px;height:38px;font-size:13px}
+  #battle .b-log{bottom:78px;width:64vw}
+}
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<!-- 载入屏 -->
+<div id="loader">
+  <div class="l-title mono">STELLAR COMMAND</div>
+  <div class="l-sub">星 · 海 · 指 · 挥 · 官</div>
+  <div class="l-bar"><i id="lbar"></i></div>
+  <div class="l-status" id="lstatus">初始化星图引擎…</div>
+</div>
+<div id="err">
+  <div class="et">无法加载 3D 引擎</div>
+  <div class="ed">本游戏需要联网加载 Three.js 渲染库（cdnjs）。请确认网络连接后刷新页面再试。<br>若在本地打开，请保持联网状态。</div>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <!-- 顶部 -->
+  <div id="topbar">
+    <div class="commander clk" id="commanderBtn">
+      <div class="avatar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#9fd4ff" stroke-width="1.4"><path d="M12 2a5 5 0 0 1 5 5v2a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5Z"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+      </div>
+      <div class="cmd-info">
+        <div class="name">指挥官</div>
+        <div class="lv mono">等级 <span id="lvNum">45</span></div>
+        <div class="xpbar"><i id="xpFill" style="width:82%"></i></div>
+        <div class="xp-num mono" id="xpTxt">23,560 / 28,560</div>
+      </div>
+    </div>
+
+    <div class="res-strip" id="resStrip"><!-- 资源由 JS 注入 --></div>
+
+    <div class="top-icons">
+      <button class="ticon" id="mailBtn" title="邮件">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#bcd6ee" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+        <span class="badge" id="mailBadge">3</span>
+      </button>
+      <button class="ticon" id="chatBtn" title="频道">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#bcd6ee" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2Z"/></svg>
+      </button>
+      <button class="ticon" id="allyBtn" title="联盟">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#bcd6ee" stroke-width="1.5"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14c2.5.2 5 1.8 5 5"/></svg>
+      </button>
+      <button class="ticon" id="setBtn" title="设置">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#bcd6ee" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.3l2-1.5-2-3.5-2.3 1a7 7 0 0 0-2.3-1.3L13.5 2h-3l-.5 2.6A7 7 0 0 0 7.7 5.9l-2.3-1-2 3.5 2 1.5A7 7 0 0 0 5 12c0 .4 0 .9.1 1.3l-2 1.5 2 3.5 2.3-1a7 7 0 0 0 2.3 1.3L10.5 22h3l.5-2.6a7 7 0 0 0 2.3-1.3l2.3 1 2-3.5-2-1.5c.1-.4.1-.9.1-1.3Z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- 左列 -->
+  <div id="leftcol">
+    <div class="card quest clk" id="questCard">
+      <div class="hd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m12 2 2.4 7.4H22l-6 4.4 2.3 7.2L12 16.6 5.7 21l2.3-7.2-6-4.4h7.6Z"/></svg><span class="t">主线任务</span></div>
+      <div class="body">
+        <div class="qname" id="questName">建立前哨站</div>
+        <button class="qbtn" id="questBtn">查看任务详情</button>
+      </div>
+    </div>
+    <div class="card sys">
+      <div class="body">
+        <div class="row1"><span class="lbl">当前星系</span></div>
+        <div class="sname" id="sysName">天狼星域</div>
+        <div class="ctl-row"><span class="lbl">控制率</span><span class="pct mono" id="ctlPct">78.5%</span></div>
+        <div class="ctlbar"><i id="ctlFill" style="width:78.5%"></i></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右侧舰队 -->
+  <div id="fleetpanel">
+    <div class="fp-hd">
+      <span class="t">舰队列表</span>
+      <button class="x clk" id="fleetClose"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="fp-sub">
+      <span class="nm">第一舰队</span>
+      <span class="mono">战力 <span class="pw" id="fleetPower">85,316</span></span>
+    </div>
+    <div class="fp-list" id="fleetList"><!-- JS 注入 --></div>
+  </div>
+  <button id="fleetReopen" title="展开舰队列表"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7h18M3 12h18M3 17h18"/></svg><span>舰队</span></button>
+
+  <!-- 底部 dock -->
+  <div id="dock"><!-- JS 注入 --></div>
+
+  <!-- 出发面板 -->
+  <div id="launchpanel">
+    <div class="lp-dest">
+      <div class="lp-orb"></div>
+      <div class="lp-info">
+        <div class="k">目标坐标</div>
+        <div class="dn" id="destName">前哨站-天狼星VII</div>
+      </div>
+    </div>
+    <button class="lp-go clk" id="launchBtn">出发</button>
+  </div>
+
+  <!-- 日志 -->
+  <div id="log"></div>
+
+  <!-- 航行进度 -->
+  <div id="voyage">
+    <span class="vp" id="voyageTxt">舰队航行中…</span>
+    <div class="vbar"><i id="voyageFill" style="width:0%"></i></div>
+  </div>
+</div>
+
+<!-- 战斗 HUD -->
+<div id="battle">
+  <div class="b-top">
+    <div class="b-bar b-ally"><div class="fill" id="bAllyFill" style="width:100%"></div>
+      <div class="lab">我方舰队 <span class="cnt" id="bAllyCount">0 / 0</span></div></div>
+    <div class="b-vs">VS</div>
+    <div class="b-bar b-enemy"><div class="fill" id="bEnemyFill" style="width:100%"></div>
+      <div class="lab">敌方舰队 <span class="cnt" id="bEnemyCount">0 / 0</span></div></div>
+  </div>
+  <div class="b-sub" id="bSub">遭遇战</div>
+  <div class="b-log" id="bLog"></div>
+  <div class="b-ctrl">
+    <div class="b-seg" id="bSpeed">
+      <button data-spd="1" class="on">1×</button>
+      <button data-spd="2">2×</button>
+      <button data-spd="3">3×</button>
+    </div>
+    <button class="b-retreat" id="bRetreat">撤退</button>
+  </div>
+  <div class="b-result" id="bResult">
+    <div class="b-card" id="bCard">
+      <div class="rt" id="bResultTitle">胜利</div>
+      <div class="rsub" id="bResultSub">敌方舰队已被全歼</div>
+      <div class="rstats">
+        <div class="rstat"><div class="v" id="bStatKill">0</div><div class="k">击毁敌舰</div></div>
+        <div class="rstat"><div class="v" id="bStatLoss">0</div><div class="k">我方损失</div></div>
+        <div class="rstat"><div class="v" id="bStatTime">0s</div><div class="k">战斗时长</div></div>
+      </div>
+      <div class="rrewards" id="bRewards"></div>
+      <button class="rbtn" id="bReturn">返回指挥中心</button>
+    </div>
+  </div>
+</div>
+
+<!-- 弹窗容器 -->
+<div id="modal"><div class="win"><div class="win-hd"><span id="winIco"></span><span class="t" id="winTitle"></span><span class="sub" id="winSub"></span><button class="win-x clk" id="winClose"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><div class="win-body" id="winBody"></div></div></div>
+
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* =====================================================================
+   星海指挥官 · Stellar Command
+   单文件 3D 舰队指挥游戏 — 对标参考截图
+   ===================================================================== */
+(function(){
+'use strict';
+
+const loader=document.getElementById('loader');
+const lbar=document.getElementById('lbar');
+const lstatus=document.getElementById('lstatus');
+function setLoad(p,t){lbar.style.width=p+'%';if(t)lstatus.textContent=t;}
+
+if(typeof THREE==='undefined'){
+  document.getElementById('err').style.display='flex';
+  loader.style.display='none';
+  return;
+}
+
+/* ====================== 工具函数 ====================== */
+const TAU=Math.PI*2;
+const rnd=(a,b)=>a+Math.random()*(b-a);
+// 伪随机（可复现，用于舰船细节）
+function mulberry32(seed){return function(){let t=seed+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;};}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+
+function fmt(n){
+  n=Math.floor(n);
+  if(n>=1e9)return (n/1e9).toFixed(2).replace(/\.?0+$/,'')+'B';
+  if(n>=1e6)return (n/1e6).toFixed(2).replace(/\.?0+$/,'')+'M';
+  if(n>=1e4)return (n/1e3).toFixed(1).replace(/\.0$/,'')+'K';
+  return n.toLocaleString('en-US');
+}
+function fmtRate(n){
+  if(n>=1e6)return '+'+(n/1e6).toFixed(2).replace(/\.?0+$/,'')+'M';
+  if(n>=1e3)return '+'+(n/1e3).toFixed(1).replace(/\.0$/,'')+'K';
+  return '+'+Math.floor(n);
+}
+function fmtInt(n){return Math.floor(n).toLocaleString('en-US');}
+
+/* ====================== 资源定义 ====================== */
+const RES=[
+  {id:'alloy', name:'合金', en:'Alloy',   color:'#5fe08a', shape:'diamond', val:9990000, rate:37200},
+  {id:'crystal',name:'晶体', en:'Crystal', color:'#5ab8ff', shape:'cube',    val:8540000, rate:27600},
+  {id:'titan',  name:'钛矿', en:'Titanium',color:'#7fe6da', shape:'cube',    val:6720000, rate:21300},
+  {id:'energy', name:'能量', en:'Energy',  color:'#b48bff', shape:'diamond', val:3150000, rate:16900},
+  {id:'coin',   name:'星币', en:'Credits', color:'#ffcf5e', shape:'coin',    val:2680000, rate:11700},
+  {id:'honor',  name:'荣誉', en:'Honor',   color:'#ff9d4e', shape:'shield',  val:15850,   rate:0},
+];
+const RESMAP={};RES.forEach(r=>RESMAP[r.id]=r);
+
+function resIcon(r,size){
+  size=size||18;const c=r.color;
+  if(r.shape==='diamond')return `<svg viewBox="0 0 24 24" width="${size}" height="${size}"><path d="M12 2 22 9 12 22 2 9Z" fill="${c}" opacity=".9"/><path d="M12 2 22 9H2Z" fill="#fff" opacity=".25"/></svg>`;
+  if(r.shape==='cube')return `<svg viewBox="0 0 24 24" width="${size}" height="${size}"><path d="M12 2 21 7v10l-9 5-9-5V7Z" fill="${c}" opacity=".88"/><path d="M12 2 21 7l-9 5-9-5Z" fill="#fff" opacity=".28"/><path d="M12 12v10l-9-5V7Z" fill="#000" opacity=".18"/></svg>`;
+  if(r.shape==='coin')return `<svg viewBox="0 0 24 24" width="${size}" height="${size}"><circle cx="12" cy="12" r="9.5" fill="${c}"/><circle cx="12" cy="12" r="6.5" fill="none" stroke="#7a5400" stroke-width="1.4" opacity=".7"/><path d="M12 7v10M9 12h6" stroke="#7a5400" stroke-width="1.6" opacity=".7"/></svg>`;
+  return `<svg viewBox="0 0 24 24" width="${size}" height="${size}"><path d="M12 2 20 5v6c0 5-3.5 8.5-8 11-4.5-2.5-8-6-8-11V5Z" fill="${c}" opacity=".9"/><path d="M12 2 20 5v3l-8 4-8-4V5Z" fill="#fff" opacity=".22"/></svg>`;
+}
+
+/* ====================== 舰船定义 ====================== */
+const SHIPS={
+  titan:    {name:'永恒级', en:'Eternal',  role:'巨舰',  roleEn:'Titan',    power:23120, qty:1,
+             cost:{alloy:240000,crystal:180000,energy:90000}, time:600,
+             m:{len:19,wid:5.4,hei:3.4,eng:4,tiers:5,greeb:46,win:64,seed:101}},
+  cruiser:  {name:'审判级', en:'Judgment', role:'巡洋舰',roleEn:'Cruiser',  power:15230, qty:1,
+             cost:{alloy:150000,crystal:110000,energy:50000}, time:420,
+             m:{len:13.5,wid:3.9,hei:2.5,eng:3,tiers:4,greeb:34,win:42,seed:202}},
+  destroyer:{name:'守护者级',en:'Guardian',role:'驱逐舰',roleEn:'Destroyer',power:8760,  qty:2,
+             cost:{alloy:80000,crystal:55000,energy:24000}, time:260,
+             m:{len:10.5,wid:2.9,hei:1.9,eng:2,tiers:3,greeb:24,win:26,seed:303}},
+  frigate:  {name:'先驱者级',en:'Pioneer', role:'护卫舰',roleEn:'Frigate',  power:6320,  qty:1,
+             cost:{alloy:52000,crystal:34000,energy:15000}, time:180,
+             m:{len:8.4,wid:2.3,hei:1.6,eng:2,tiers:3,greeb:18,win:18,seed:404}},
+  support:  {name:'星辰级', en:'Stellar',  role:'支援舰',roleEn:'Support',  power:4006,  qty:1,
+             cost:{alloy:30000,crystal:40000,energy:12000}, time:150,
+             m:{len:7.6,wid:2.7,hei:1.7,eng:2,tiers:2,greeb:16,win:16,seed:505}},
+  escort:   {name:'雷霆级', en:'Thunder',  role:'护航艇',roleEn:'Escort',   power:2000,  qty:3,
+             cost:{alloy:16000,crystal:9000,energy:6000}, time:90,
+             m:{len:5.6,wid:1.7,hei:1.15,eng:2,tiers:2,greeb:10,win:8,seed:606}},
+  scout:    {name:'苍穹级', en:'Sky',      role:'侦察舰',roleEn:'Scout',    power:1500,  qty:2,
+             cost:{alloy:9000,crystal:7000,energy:4000}, time:60,
+             m:{len:4.7,wid:1.35,hei:0.95,eng:1,tiers:1,greeb:7,win:5,seed:707}},
+  fighter:  {name:'蜂群级', en:'Swarm',    role:'战斗机',roleEn:'Fighter',  power:506,   qty:20,
+             cost:{alloy:2200,crystal:1200,energy:800}, time:20,
+             m:{len:1.9,wid:1.7,hei:0.55,eng:1,tiers:0,greeb:2,win:0,seed:808}},
+};
+const SHIP_ORDER=['titan','cruiser','destroyer','frigate','support','escort','scout','fighter'];
+
+// 小图标（用于列表/建造卡片）—— 侧视剪影
+function shipGlyph(key){
+  const map={
+    titan:'M2 12h17l3 1-3 1H2zM5 9h10l2 3H5zM7 14h9l-1 2H7z',
+    cruiser:'M3 12h15l2 1-2 1H3zM6 9.5h9l1.5 2.5H6z',
+    destroyer:'M4 12h13l2 1-2 1H4zM7 10h7l1.5 2H7z',
+    frigate:'M5 12h11l1.5 1-1.5 1H5zM8 10.5h6l1 1.5H8z',
+    support:'M5 11.5h11v3H5zM8 9.5h6l1 2H8z',
+    escort:'M6 12h9l1 1-1 1H6zM9 11h4l1 1H9z',
+    scout:'M7 12h7l1.5.7-1.5.7H7zM10 11h3l1 1h-4z',
+    fighter:'M4 12h8l3-2v4l-3-2H4zM9 9l-1 3 1 3'
+  };
+  return `<svg viewBox="0 0 24 24"><path d="${map[key]||map.frigate}" fill="none" stroke="#7fc0ee" stroke-width="1.1" stroke-linejoin="round"/></svg>`;
+}
+
+/* ====================== 游戏状态 ====================== */
+const G={
+  level:45, xp:23560, xpMax:28560,
+  res:{}, rateMul:{}, powerMul:1, warpMul:1,
+  control:78.5, sysName:'天狼星域', mode:'command',
+  dest:{id:'sirius7',name:'前哨站-天狼星VII'},
+  voyage:null, // {target, total, elapsed, reward}
+  build:[],    // {key, total, elapsed}
+  tech:{},
+  settings:{sfx:true, quality:'high', lang:'zh'},
+};
+RES.forEach(r=>{G.res[r.id]=r.val;});
+['alloy','crystal','titan','energy','coin'].forEach(k=>G.rateMul[k]=1);
+
+function fleetPower(){
+  let p=0;for(const k of SHIP_ORDER)p+=SHIPS[k].power*SHIPS[k].qty;
+  return Math.round(p*G.powerMul);
+}
+
+/* ====================================================================
+   ============================ 3D 场景 ===============================
+   ==================================================================== */
+let renderer,scene,camera;
+let fleetGroup,planet,planetAtmo,sun,starsNear,starsFar,nebula;
+const clock={t:0};
+const ships3d=[]; // {grp, baseY, phase, bob, key}
+
+// 画布纹理：径向光晕
+function glowTexture(inner,outer){
+  const c=document.createElement('canvas');c.width=c.height=128;
+  const x=c.getContext('2d');
+  const g=x.createRadialGradient(64,64,0,64,64,64);
+  g.addColorStop(0,inner);g.addColorStop(0.25,inner);
+  g.addColorStop(0.5,outer);g.addColorStop(1,'rgba(0,0,0,0)');
+  x.fillStyle=g;x.fillRect(0,0,128,128);
+  const t=new THREE.CanvasTexture(c);t.needsUpdate=true;return t;
+}
+// 星点纹理（软圆）
+function starTexture(){
+  const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');
+  const g=x.createRadialGradient(32,32,0,32,32,32);
+  g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(0.4,'rgba(255,255,255,.55)');g.addColorStop(1,'rgba(255,255,255,0)');
+  x.fillStyle=g;x.beginPath();x.arc(32,32,32,0,TAU);x.fill();
+  const t=new THREE.CanvasTexture(c);return t;
+}
+// 行星纹理（程序化海陆）
+function planetTexture(){
+  const w=512,h=256,c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');
+  // 深海底色
+  const g=x.createLinearGradient(0,0,0,h);
+  g.addColorStop(0,'#0a2c4d');g.addColorStop(0.5,'#0d3a5e');g.addColorStop(1,'#071f38');
+  x.fillStyle=g;x.fillRect(0,0,w,h);
+  const rng=mulberry32(771);
+  // 大陆斑块
+  for(let i=0;i<90;i++){
+    const cx=rng()*w,cy=rng()*h,r=rng()*46+10;
+    const land=x.createRadialGradient(cx,cy,0,cx,cy,r);
+    const tone=rng();
+    land.addColorStop(0,`rgba(${40+tone*40},${70+tone*40},${60+tone*30},${.35+rng()*.3})`);
+    land.addColorStop(1,'rgba(0,0,0,0)');
+    x.fillStyle=land;x.beginPath();x.arc(cx,cy,r,0,TAU);x.fill();
+  }
+  // 极地白
+  for(let i=0;i<14;i++){const cx=rng()*w,cy=rng()<.5?rng()*30:h-rng()*30,r=rng()*40+18;
+    const ice=x.createRadialGradient(cx,cy,0,cx,cy,r);ice.addColorStop(0,'rgba(200,225,245,.5)');ice.addColorStop(1,'rgba(0,0,0,0)');
+    x.fillStyle=ice;x.beginPath();x.arc(cx,cy,r,0,TAU);x.fill();}
+  // 云带
+  for(let i=0;i<60;i++){const cx=rng()*w,cy=rng()*h,r=rng()*30+8;
+    const cl=x.createRadialGradient(cx,cy,0,cx,cy,r);cl.addColorStop(0,`rgba(220,235,250,${.12+rng()*.16})`);cl.addColorStop(1,'rgba(0,0,0,0)');
+    x.fillStyle=cl;x.beginPath();x.arc(cx,cy,r,0,TAU);x.fill();}
+  return new THREE.CanvasTexture(c);
+}
+// 星云纹理
+function nebulaTexture(){
+  const s=512,c=document.createElement('canvas');c.width=c.height=s;const x=c.getContext('2d');
+  x.fillStyle='rgba(0,0,0,0)';x.fillRect(0,0,s,s);
+  const rng=mulberry32(909);
+  const cols=['rgba(70,40,120,','rgba(30,80,140,','rgba(110,50,100,','rgba(40,90,120,'];
+  for(let i=0;i<26;i++){
+    const cx=rng()*s,cy=rng()*s,r=rng()*180+60;
+    const col=cols[(rng()*cols.length)|0];
+    const g=x.createRadialGradient(cx,cy,0,cx,cy,r);
+    g.addColorStop(0,col+(0.06+rng()*0.08)+')');g.addColorStop(1,col+'0)');
+    x.fillStyle=g;x.beginPath();x.arc(cx,cy,r,0,TAU);x.fill();
+  }
+  // 散布恒星
+  for(let i=0;i<260;i++){x.fillStyle='rgba(255,255,255,'+(0.2+rng()*0.6)+')';
+    const px=rng()*s,py=rng()*s,sz=rng()*1.4+0.3;x.fillRect(px,py,sz,sz);}
+  return new THREE.CanvasTexture(c);
+}
+
+const matHull=new THREE.MeshStandardMaterial({color:0x2b313c,metalness:0.82,roughness:0.46});
+const matHull2=new THREE.MeshStandardMaterial({color:0x363d4a,metalness:0.78,roughness:0.5});
+const matDark=new THREE.MeshStandardMaterial({color:0x171b22,metalness:0.7,roughness:0.6});
+const matTrim=new THREE.MeshStandardMaterial({color:0x4a5566,metalness:0.85,roughness:0.4,
+  emissive:0x0a1726,emissiveIntensity:0.4});
+const matWin=new THREE.MeshBasicMaterial({color:0xffd98a});
+const matEngine=new THREE.MeshBasicMaterial({color:0x9fe6ff});
+const glowTexEngine=glowTexture('rgba(180,235,255,0.95)','rgba(60,150,230,0.5)');
+// 敌方配色（红/橙）
+const matHullE =new THREE.MeshStandardMaterial({color:0x39252c,metalness:0.8, roughness:0.5});
+const matHull2E=new THREE.MeshStandardMaterial({color:0x4a2d33,metalness:0.78,roughness:0.52});
+const matTrimE =new THREE.MeshStandardMaterial({color:0x6e3a3e,metalness:0.85,roughness:0.42,emissive:0x300806,emissiveIntensity:0.45});
+const matWinE  =new THREE.MeshBasicMaterial({color:0xffb27a});
+const matCoreE =new THREE.MeshBasicMaterial({color:0xff9a6a});
+const glowTexEngineE=glowTexture('rgba(255,190,150,0.95)','rgba(235,90,55,0.5)');
+const PAL_ALLY ={hull:matHull, hull2:matHull2, dark:matDark, trim:matTrim, win:matWin, core:matEngine, engTex:glowTexEngine,  engColor:0x8fdcff};
+const PAL_ENEMY={hull:matHullE,hull2:matHull2E,dark:matDark, trim:matTrimE,win:matWinE,core:matCoreE, engTex:glowTexEngineE, engColor:0xff7a4a};
+
+let geoCache={};
+function box(w,h,d){const k='b'+w+'_'+h+'_'+d;return geoCache[k]||(geoCache[k]=new THREE.BoxGeometry(w,h,d));}
+
+/* ---- 舰船工厂：组装一艘“战列舰”级几何 ---- */
+function buildShip(def,detail,enemy){
+  const m=def.m, rng=mulberry32(m.seed);
+  const P=enemy?PAL_ENEMY:PAL_ALLY;
+  const matHull=P.hull, matHull2=P.hull2, matDark=P.dark, matTrim=P.trim, matWin=P.win, matEngine=P.core, glowTexEngine=P.engTex, engColor=P.engColor;
+  const g=new THREE.Group();
+  const L=m.len,W=m.wid,H=m.hei;
+
+  // 主船体（沿 Z 轴前进，分段构成楔形）
+  const segs=6;
+  for(let i=0;i<segs;i++){
+    const t=i/(segs-1);                 // 0 尾 -> 1 首
+    const z=lerp(-L*0.46,L*0.46,t);
+    const taper=1-Math.pow(Math.max(0,t-0.55)/0.45,1.5)*0.78; // 首部收窄
+    const w=W*lerp(0.78,1,Math.sin(t*Math.PI))*taper;
+    const h=H*lerp(0.55,1,Math.sin(t*Math.PI*0.9))*lerp(0.75,1,1-Math.abs(t-0.4));
+    const seg=new THREE.Mesh(box(w,h,L/segs*1.04),i%2?matHull2:matHull);
+    seg.position.z=z;seg.position.y=h*0.04;
+    g.add(seg);
+  }
+  // 首部尖锥
+  const prow=new THREE.Mesh(new THREE.ConeGeometry(W*0.16,L*0.16,4),matHull2);
+  prow.rotation.x=Math.PI/2;prow.rotation.z=Math.PI/4;prow.position.z=L*0.52;
+  g.add(prow);
+
+  // 中轴装甲脊
+  const spine=new THREE.Mesh(box(W*0.16,H*0.16,L*0.86),matTrim);
+  spine.position.y=H*0.52;g.add(spine);
+
+  // 上层建筑：层叠“城市”
+  let baseY=H*0.5, prevW=W*0.62, prevL=L*0.5, zc=-L*0.04;
+  for(let i=0;i<m.tiers;i++){
+    const w=prevW*lerp(0.9,0.5,i/Math.max(1,m.tiers));
+    const d=prevL*lerp(0.8,0.42,i/Math.max(1,m.tiers));
+    const h=H*lerp(0.5,0.28,i/Math.max(1,m.tiers));
+    const t=new THREE.Mesh(box(w,h,d),i%2?matHull:matHull2);
+    t.position.set((rng()-0.5)*W*0.1, baseY+h*0.5, zc-(rng()*0.1)*L);
+    g.add(t);
+    baseY+=h*0.9;prevW=w;prevL=d;
+  }
+  // 舰桥塔
+  if(m.tiers>=2){
+    const bh=H*1.1;
+    const tower=new THREE.Mesh(box(W*0.22,bh,W*0.3),matHull);
+    tower.position.set(0,H*0.5+bh*0.5,-L*0.02);g.add(tower);
+    const cap=new THREE.Mesh(box(W*0.34,H*0.14,W*0.4),matTrim);
+    cap.position.set(0,H*0.5+bh,-L*0.02);g.add(cap);
+    // 传感器桅
+    const mast=new THREE.Mesh(box(W*0.04,H*0.7,W*0.04),matDark);
+    mast.position.set(0,H*0.5+bh+H*0.35,-L*0.02);g.add(mast);
+  }
+
+  // 侧舷外挂/炮塔
+  const pods=Math.max(2,Math.round(m.tiers*1.2));
+  for(let i=0;i<pods;i++){
+    const side=i%2?1:-1, zz=lerp(-L*0.3,L*0.34,((i>>1)/Math.max(1,(pods>>1))));
+    const pod=new THREE.Mesh(box(W*0.18,H*0.4,L*0.1),matHull2);
+    pod.position.set(side*W*0.55,H*0.1,zz);g.add(pod);
+    if(detail&&m.tiers>=3){ // 炮管
+      const barrel=new THREE.Mesh(new THREE.CylinderGeometry(W*0.03,W*0.03,L*0.16,6),matDark);
+      barrel.rotation.x=Math.PI/2;barrel.position.set(side*W*0.55,H*0.3,zz+L*0.1);g.add(barrel);
+    }
+  }
+
+  // 细节碎甲（greebles）
+  for(let i=0;i<m.greeb;i++){
+    const w=rng()*W*0.16+W*0.04,h=rng()*H*0.18+H*0.03,d=rng()*L*0.06+L*0.02;
+    const gb=new THREE.Mesh(box(w,h,d),rng()<.3?matTrim:(rng()<.5?matHull:matDark));
+    gb.position.set((rng()-0.5)*W*0.9,H*0.5+h*0.4+rng()*H*0.3*(rng()<.4?1:0),(rng()-0.5)*L*0.86);
+    g.add(gb);
+  }
+
+  // 舷窗灯光
+  if(m.win>0){
+    const rows=detail?2:1;
+    for(let s=-1;s<=1;s+=2){
+      for(let r=0;r<rows;r++){
+        const count=Math.round(m.win/2/rows);
+        for(let i=0;i<count;i++){
+          const wz=lerp(-L*0.4,L*0.42,i/count)+(rng()-0.5)*0.1;
+          const wy=H*(0.1+r*0.22)+(rng()-0.5)*0.05;
+          const win=new THREE.Mesh(box(0.06,0.05,L*0.012+0.03),matWin);
+          win.position.set(s*W*0.49,wy,wz);g.add(win);
+        }
+      }
+    }
+  }
+
+  // 引擎：尾部发光喷口 + 光晕
+  const engRing=[];
+  for(let i=0;i<m.eng;i++){
+    let ex=0,ey=H*0.05;
+    if(m.eng===1){ex=0;}
+    else if(m.eng===2){ex=(i?1:-1)*W*0.28;}
+    else if(m.eng===3){ex=(i-1)*W*0.3;}
+    else {ex=((i%2)?1:-1)*W*0.3;ey=H*0.05+(i<2?-H*0.18:H*0.2);}
+    const noz=new THREE.Mesh(new THREE.CylinderGeometry(W*0.16,W*0.12,L*0.06,12),matDark);
+    noz.rotation.x=Math.PI/2;noz.position.set(ex,ey,-L*0.49);g.add(noz);
+    const core=new THREE.Mesh(new THREE.CircleGeometry(W*0.13,16),matEngine);
+    core.position.set(ex,ey,-L*0.52);core.rotation.y=Math.PI;g.add(core);
+    // 光晕 sprite
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTexEngine,color:engColor,
+      blending:THREE.AdditiveBlending,transparent:true,depthWrite:false}));
+    const sc=W*0.95;sp.scale.set(sc,sc,sc);sp.position.set(ex,ey,-L*0.55);g.add(sp);
+    engRing.push(sp);
+  }
+  g.userData.engines=engRing;
+  return g;
+}
+
+/* ---- 场景搭建 ---- */
+function initScene(){
+  const canvas=document.getElementById('scene');
+  renderer=new THREE.WebGLRenderer({canvas,antialias:G.settings.quality!=='low'});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, G.settings.quality==='high'?2:1.3));
+  renderer.setSize(innerWidth,innerHeight);
+  renderer.outputEncoding=THREE.sRGBEncoding;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure=1.08;
+
+  scene=new THREE.Scene();
+  scene.fog=new THREE.FogExp2(0x05080f,0.0022);
+
+  camera=new THREE.PerspectiveCamera(46,innerWidth/innerHeight,0.5,4000);
+
+  // ---- 灯光：太阳主光 + 环境 + 蓝色补光 ----
+  const sunLight=new THREE.DirectionalLight(0xfff2dc,2.5);
+  sunLight.position.set(-60,55,40);scene.add(sunLight);
+  const fill=new THREE.DirectionalLight(0x3a6c9e,0.9);
+  fill.position.set(40,-20,-30);scene.add(fill);
+  const rim=new THREE.DirectionalLight(0x6fc0ff,0.7);
+  rim.position.set(20,10,-60);scene.add(rim);
+  scene.add(new THREE.AmbientLight(0x223044,0.7));
+  scene.add(new THREE.HemisphereLight(0x4a7ab0,0x0a0e16,0.5));
+
+  // ---- 星空（远 + 近，两层视差）----
+  starsFar=makeStars(2600, 900, 0.6, 0.9);
+  starsNear=makeStars(1400, 480, 1.3, 1.0);
+  scene.add(starsFar);scene.add(starsNear);
+
+  // ---- 星云背景板 ----
+  const nebMat=new THREE.MeshBasicMaterial({map:nebulaTexture(),transparent:true,
+    blending:THREE.AdditiveBlending,depthWrite:false,opacity:0.8,side:THREE.DoubleSide});
+  nebula=new THREE.Mesh(new THREE.PlaneGeometry(2200,1300),nebMat);
+  nebula.position.set(120,40,-820);nebula.rotation.z=0.2;scene.add(nebula);
+
+  // ---- 太阳（加性光晕 + 核心 + 光斑）----
+  sun=new THREE.Group();
+  const sunCore=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTexture('rgba(255,255,255,1)','rgba(255,250,230,0.8)'),
+    color:0xffffff,blending:THREE.AdditiveBlending,transparent:true,depthWrite:false}));
+  sunCore.scale.set(34,34,1);sun.add(sunCore);
+  const sunGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTexture('rgba(255,240,210,0.7)','rgba(255,200,140,0.3)'),
+    color:0xffe6b8,blending:THREE.AdditiveBlending,transparent:true,depthWrite:false}));
+  sunGlow.scale.set(150,150,1);sun.add(sunGlow);
+  // 光晕条纹（变形镜头光斑）
+  const streakTex=glowTexture('rgba(255,250,235,0.9)','rgba(255,230,190,0.2)');
+  const sH=new THREE.Sprite(new THREE.SpriteMaterial({map:streakTex,color:0xfff0d8,blending:THREE.AdditiveBlending,transparent:true,depthWrite:false}));
+  sH.scale.set(420,16,1);sun.add(sH);
+  const sV=new THREE.Sprite(new THREE.SpriteMaterial({map:streakTex,color:0xfff0d8,blending:THREE.AdditiveBlending,transparent:true,depthWrite:false}));
+  sV.scale.set(16,170,1);sun.add(sV);
+  sun.position.set(-150,130,-560);scene.add(sun);
+
+  // ---- 行星（在右下角，巨大，带大气辉光）----
+  const pT=planetTexture();
+  planet=new THREE.Mesh(new THREE.SphereGeometry(120,64,48),
+    new THREE.MeshStandardMaterial({map:pT,metalness:0.05,roughness:0.95}));
+  planet.position.set(190,-150,-180);scene.add(planet);
+  // 大气辉光（外层 BackSide + 菲涅尔着色器）
+  const atmoMat=new THREE.ShaderMaterial({
+    uniforms:{c:{value:0.7},p:{value:3.2},glowColor:{value:new THREE.Color(0x4fb3ff)}},
+    vertexShader:`varying vec3 vN;varying vec3 vP;void main(){vN=normalize(normalMatrix*normal);vP=normalize((modelViewMatrix*vec4(position,1.0)).xyz);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+    fragmentShader:`uniform float c;uniform float p;uniform vec3 glowColor;varying vec3 vN;varying vec3 vP;void main(){float i=pow(c-dot(vN,vP),p);i=clamp(i,0.0,1.0);gl_FragColor=vec4(glowColor,i);}`,
+    side:THREE.BackSide,blending:THREE.AdditiveBlending,transparent:true,depthWrite:false
+  });
+  planetAtmo=new THREE.Mesh(new THREE.SphereGeometry(132,64,48),atmoMat);
+  planetAtmo.position.copy(planet.position);scene.add(planetAtmo);
+
+  // ---- 舰队 ----
+  fleetGroup=new THREE.Group();scene.add(fleetGroup);
+  placeFleet();
+
+  // 相机初始
+  camState.az=0.62;camState.el=0.32;camState.dist=46;
+  updateCamera(true);
+
+  addInput();
+  window.addEventListener('resize',onResize);
+}
+
+function makeStars(count,spread,size,bright){
+  const geo=new THREE.BufferGeometry();
+  const pos=new Float32Array(count*3),rnd=new Float32Array(count),sz=new Float32Array(count);
+  for(let i=0;i<count;i++){
+    // 球壳分布
+    const r=spread*(0.6+Math.random()*0.4);
+    const th=Math.random()*TAU, ph=Math.acos(2*Math.random()-1);
+    pos[i*3]=r*Math.sin(ph)*Math.cos(th);
+    pos[i*3+1]=r*Math.sin(ph)*Math.sin(th);
+    pos[i*3+2]=r*Math.cos(ph);
+    rnd[i]=Math.random()*TAU;
+    sz[i]=size*(0.5+Math.random()*1.2);
+  }
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  geo.setAttribute('aRnd',new THREE.BufferAttribute(rnd,1));
+  geo.setAttribute('aSize',new THREE.BufferAttribute(sz,1));
+  const mat=new THREE.ShaderMaterial({
+    uniforms:{uTime:{value:0},uTex:{value:starTexture()},uBright:{value:bright}},
+    vertexShader:`attribute float aRnd;attribute float aSize;uniform float uTime;varying float vTw;
+      void main(){vTw=0.6+0.4*sin(uTime*1.6+aRnd);vec4 mv=modelViewMatrix*vec4(position,1.0);
+      gl_PointSize=aSize*(300.0/-mv.z);gl_Position=projectionMatrix*mv;}`,
+    fragmentShader:`uniform sampler2D uTex;uniform float uBright;varying float vTw;
+      void main(){vec4 t=texture2D(uTex,gl_PointCoord);gl_FragColor=vec4(vec3(1.0,1.0,1.05),t.a*vTw*uBright);}`,
+    transparent:true,blending:THREE.AdditiveBlending,depthWrite:false
+  });
+  const pts=new THREE.Points(geo,mat);pts.userData.mat=mat;return pts;
+}
+
+function placeFleet(){
+  // 清空
+  while(fleetGroup.children.length)fleetGroup.remove(fleetGroup.children[0]);
+  ships3d.length=0;
+  const detail=G.settings.quality!=='low';
+  // 旗舰（永恒级）— 主角，前景偏左
+  const layout=[
+    {key:'titan',    pos:[-2,0,2],     rot:-0.5, s:1.0,  hero:true},
+    {key:'cruiser',  pos:[14,3,-12],   rot:-0.55,s:0.92},
+    {key:'cruiser',  pos:[-20,5,-20],  rot:-0.45,s:0.8},
+    {key:'destroyer',pos:[8,-6,8],     rot:-0.6, s:0.85},
+    {key:'destroyer',pos:[-16,-4,-2],  rot:-0.5, s:0.8},
+    {key:'frigate',  pos:[22,8,-30],   rot:-0.5, s:0.75},
+    {key:'support',  pos:[-30,2,-34],  rot:-0.4, s:0.7},
+    {key:'frigate',  pos:[30,-2,-18],  rot:-0.55,s:0.7},
+    // 远景编队（增强舰队纵深，低模）
+    {key:'cruiser',  pos:[-44,12,-64], rot:-0.42,s:0.6},
+    {key:'destroyer',pos:[46,16,-72],  rot:-0.5, s:0.55},
+    {key:'frigate',  pos:[2,20,-88],   rot:-0.48,s:0.5},
+    {key:'support',  pos:[64,6,-58],   rot:-0.4, s:0.52},
+  ];
+  layout.forEach((it,idx)=>{
+    const grp=buildShip(SHIPS[it.key],detail&&(it.hero||idx<4));
+    grp.scale.setScalar(it.s);
+    grp.position.set(it.pos[0],it.pos[1],it.pos[2]);
+    grp.rotation.y=it.rot;
+    grp.rotation.z=rnd(-0.04,0.04);
+    fleetGroup.add(grp);
+    ships3d.push({grp,baseY:it.pos[1],phase:rnd(0,TAU),bob:rnd(0.3,0.7),hero:it.hero});
+  });
+  // 战机小队（蜂群）—— 数个小点
+  for(let i=0;i<5;i++){
+    const f=buildShip(SHIPS.fighter,false);
+    const px=rnd(-8,38),py=rnd(-10,12),pz=rnd(-6,18);
+    f.scale.setScalar(rnd(0.8,1.2));f.position.set(px,py,pz);f.rotation.y=rnd(-0.7,-0.4);
+    fleetGroup.add(f);
+    ships3d.push({grp:f,baseY:py,phase:rnd(0,TAU),bob:rnd(0.5,1.0),fighter:true});
+  }
+  fleetGroup.position.y=-1;
+}
+
+/* ---- 相机控制（自研轨道，避免 OrbitControls）---- */
+const camState={az:0.6,el:0.3,dist:46,tAz:0.6,tEl:0.3,tDist:46,drag:false,px:0,py:0,auto:true,idle:0};
+const camTarget=new THREE.Vector3(2,0,-2);
+function updateCamera(instant){
+  if(instant){camState.tAz=camState.az;camState.tEl=camState.el;camState.tDist=camState.dist;}
+}
+function addInput(){
+  const el=renderer.domElement;
+  function down(x,y){camState.drag=true;camState.px=x;camState.py=y;camState.auto=false;camState.idle=0;}
+  function move(x,y){
+    if(!camState.drag)return;
+    const dx=(x-camState.px)/innerWidth,dy=(y-camState.py)/innerHeight;
+    camState.tAz-=dx*3;camState.tEl=clamp(camState.tEl+dy*2,-0.15,1.2);
+    camState.px=x;camState.py=y;
+  }
+  function up(){camState.drag=false;camState.idle=0;}
+  el.addEventListener('mousedown',e=>down(e.clientX,e.clientY));
+  window.addEventListener('mousemove',e=>move(e.clientX,e.clientY));
+  window.addEventListener('mouseup',up);
+  el.addEventListener('touchstart',e=>{if(e.touches.length===1)down(e.touches[0].clientX,e.touches[0].clientY);},{passive:true});
+  el.addEventListener('touchmove',e=>{if(e.touches.length===1)move(e.touches[0].clientX,e.touches[0].clientY);},{passive:true});
+  el.addEventListener('touchend',up);
+  el.addEventListener('wheel',e=>{e.preventDefault();camState.tDist=clamp(camState.tDist+e.deltaY*0.03,26,90);camState.auto=false;camState.idle=0;},{passive:false});
+}
+function onResize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
+  if(battleCam){battleCam.aspect=innerWidth/innerHeight;battleCam.updateProjectionMatrix();}
+  renderer.setSize(innerWidth,innerHeight);}
+
+/* ---- 主渲染循环 ---- */
+let lastT=performance.now();
+function animate(now){
+  requestAnimationFrame(animate);
+  const dt=Math.min(0.05,(now-lastT)/1000);lastT=now;clock.t+=dt;
+
+  // 战斗场景
+  if(G.mode==='battle' && B.active){
+    updateBattle(dt);
+    renderer.render(battleScene,battleCam);
+    return;
+  }
+
+  // 相机阻尼 + 自动巡航
+  camState.idle+=dt;
+  if(!camState.drag && camState.idle>6) camState.auto=true;
+  if(camState.auto){camState.tAz+=dt*0.025;camState.tEl=lerp(camState.tEl,0.34+Math.sin(clock.t*0.18)*0.05,0.02);}
+  camState.az=lerp(camState.az,camState.tAz,0.06);
+  camState.el=lerp(camState.el,camState.tEl,0.06);
+  camState.dist=lerp(camState.dist,camState.tDist,0.07);
+  const sway=Math.sin(clock.t*0.4)*0.4;
+  const cx=camTarget.x+Math.cos(camState.az)*Math.cos(camState.el)*camState.dist;
+  const cy=camTarget.y+Math.sin(camState.el)*camState.dist+sway;
+  const cz=camTarget.z+Math.sin(camState.az)*Math.cos(camState.el)*camState.dist;
+  camera.position.set(cx,cy,cz);
+  camera.lookAt(camTarget);
+
+  // 舰队漂浮/引擎脉冲
+  for(const s of ships3d){
+    s.grp.position.y=s.baseY+Math.sin(clock.t*s.bob+s.phase)*(s.fighter?0.5:0.25);
+    if(s.fighter)s.grp.position.z+= Math.sin(clock.t*0.3+s.phase)*0.0; // 保持
+    const eng=s.grp.userData.engines;
+    if(eng){const p=0.85+Math.sin(clock.t*5+s.phase)*0.15;for(const e of eng){const sc=e.scale.x;e.material.opacity=p;}}
+  }
+  fleetGroup.rotation.y=Math.sin(clock.t*0.05)*0.015;
+
+  // 行星自转 + 大气面向相机
+  if(planet)planet.rotation.y+=dt*0.012;
+  // 星空视差微转
+  if(starsFar)starsFar.rotation.y+=dt*0.004;
+  if(starsNear)starsNear.rotation.y+=dt*0.008;
+  if(starsFar)starsFar.userData.mat.uniforms.uTime.value=clock.t;
+  if(starsNear)starsNear.userData.mat.uniforms.uTime.value=clock.t;
+
+  renderer.render(scene,camera);
+}
+
+/* ====================================================================
+   ============================== UI ==================================
+   ==================================================================== */
+const $=id=>document.getElementById(id);
+
+/* ---- 顶部资源条 ---- */
+function buildResStrip(){
+  const wrap=$('resStrip');wrap.innerHTML='';
+  RES.forEach(r=>{
+    const d=document.createElement('div');d.className='res';
+    d.innerHTML=`<span class="ico">${resIcon(r,18)}</span><span class="col"><span class="v mono" id="res_${r.id}">${fmt(G.res[r.id])}</span>${r.rate?`<span class="r mono">${fmtRate(r.rate)}</span>`:''}</span>`;
+    wrap.appendChild(d);
+  });
+}
+function refreshRes(){
+  RES.forEach(r=>{const e=$('res_'+r.id);if(e)e.textContent=fmt(G.res[r.id]);});
+}
+
+/* ---- 舰队列表 ---- */
+function buildFleetList(){
+  const list=$('fleetList');list.innerHTML='';
+  SHIP_ORDER.forEach(k=>{
+    const s=SHIPS[k];
+    const row=document.createElement('div');row.className='ship-row';row.dataset.k=k;
+    row.innerHTML=`<div class="ship-pic">${shipGlyph(k)}</div>
+      <div class="ship-meta"><div class="nm">${s.name} <small>· ${s.role}</small></div>
+      <div class="pw mono">战力 <b>${fmtInt(s.power)}</b></div></div>
+      <div class="ship-qty mono">×${s.qty}</div>`;
+    row.addEventListener('click',()=>selectShip(k,row));
+    list.appendChild(row);
+  });
+  $('fleetPower').textContent=fmtInt(fleetPower());
+}
+let selKey=null;
+function selectShip(k,row){
+  document.querySelectorAll('.ship-row').forEach(r=>r.classList.remove('sel'));
+  row.classList.add('sel');selKey=k;
+  sfx('blip');
+  // 镜头聚焦该舰（旗舰/前几艘有对应模型）
+  const idxMap={titan:0,cruiser:1,destroyer:3,frigate:5,support:6};
+  if(idxMap[k]!==undefined && ships3d[idxMap[k]]){
+    const p=ships3d[idxMap[k]].grp.position;
+    camTarget.set(p.x*0.5,p.y,p.z*0.5);
+    camState.tDist=clamp(camState.tDist,30,52);camState.auto=false;camState.idle=0;
+  }
+  toast(`已选定 ${SHIPS[k].name} · ${SHIPS[k].role}`,'ok');
+}
+
+/* ---- 底部 dock ---- */
+const DOCK=[
+  {id:'fleet', name:'舰队', svg:'M3 17 12 3l9 14-9-3z'},
+  {id:'build', name:'建造', svg:'M4 20h16M6 20V9l6-5 6 5v11M9 20v-5h6v5'},
+  {id:'research',name:'研究',svg:'M12 3v3M12 18v3M4.2 7.5l2.6 1.5M17.2 15l2.6 1.5M4.2 16.5l2.6-1.5M17.2 9l2.6-1.5M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z'},
+  {id:'ware',  name:'仓库', svg:'M3 8 12 3l9 5v11H3zM3 8l9 5 9-5M12 13v6'},
+  {id:'trade', name:'贸易', svg:'M4 8h13l-3-3M20 16H7l3 3'},
+  {id:'ally',  name:'联盟', svg:'M9 8a3 3 0 1 0 0-.01M3 20c0-3 3-5 6-5s6 2 6 5M17 9a2.4 2.4 0 1 0 0-.01M15.5 14c2.5.2 5 1.8 5 5'},
+  {id:'quest', name:'任务', svg:'M5 4h14v16l-7-3-7 3zM9 9h6M9 13h4'},
+  {id:'map',   name:'星图', svg:'M12 21c4-4 7-7.4 7-11a7 7 0 1 0-14 0c0 3.6 3 7 7 11zM12 7a3 3 0 1 0 0 6 3 3 0 0 0 0-6z'},
+];
+function buildDock(){
+  const d=$('dock');d.innerHTML='';
+  DOCK.forEach(b=>{
+    const btn=document.createElement('button');btn.className='dbtn clk';
+    btn.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="#bcd6ee" stroke-width="1.5" stroke-linejoin="round"><path d="${b.svg}"/></svg><span>${b.name}</span>`;
+    btn.addEventListener('click',()=>{sfx('tap');openPanel(b.id);});
+    d.appendChild(btn);
+  });
+}
+
+/* ---- 弹窗系统 ---- */
+const PANEL_ICONS={
+  build:'M4 20h16M6 20V9l6-5 6 5v11',research:'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 3v3M12 18v3',
+  ware:'M3 8 12 3l9 5v11H3z',trade:'M4 8h13l-3-3M20 16H7l3 3',map:'M12 21c4-4 7-7.4 7-11a7 7 0 1 0-14 0c0 3.6 3 7 7 11z',
+  fleet:'M3 17 12 3l9 14-9-3z',quest:'M5 4h14v16l-7-3-7 3z',ally:'M9 8a3 3 0 1 0 0-.01',
+  mail:'M3 5h18v14H3zM3 7l9 6 9-6',set:'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z'
+};
+function winIcon(id){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="${PANEL_ICONS[id]||PANEL_ICONS.build}"/></svg>`;}
+function openWin(id,title,sub,html){
+  $('winIco').innerHTML=winIcon(id);
+  $('winTitle').textContent=title;
+  $('winSub').textContent=sub||'';
+  $('winBody').innerHTML=html;
+  $('modal').classList.add('show');
+}
+function closeWin(){$('modal').classList.remove('show');}
+$('winClose').addEventListener('click',()=>{sfx('tap');closeWin();});
+$('modal').addEventListener('click',e=>{if(e.target===$('modal'))closeWin();});
+
+function openPanel(id){
+  $('modal').dataset.panel=id;
+  switch(id){
+    case 'build':panelBuild();break;
+    case 'research':panelResearch();break;
+    case 'trade':panelTrade();break;
+    case 'map':panelMap();break;
+    case 'ware':panelWare();break;
+    case 'fleet':panelFleet();break;
+    case 'quest':panelQuest();break;
+    case 'ally':panelAlly();break;
+    case 'mail':panelMail();break;
+    case 'set':panelSettings();break;
+  }
+}
+
+/* ====================== 建造面板 ====================== */
+function canAfford(cost){return Object.keys(cost).every(k=>G.res[k]>=cost[k]);}
+function costHTML(cost){
+  return Object.keys(cost).map(k=>{
+    const r=RESMAP[k];const ok=G.res[k]>=cost[k];
+    return `<span class="cost ${ok?'':'no'}">${resIcon(r,13)}${fmt(cost[k])}</span>`;
+  }).join('');
+}
+function panelBuild(){
+  let h='<div class="grid">';
+  SHIP_ORDER.forEach(k=>{
+    const s=SHIPS[k];
+    const q=G.build.find(b=>b.key===k);
+    const afford=canAfford(s.cost);
+    h+=`<div class="bcard" data-k="${k}">
+      <div class="top"><div class="pic">${shipGlyph(k)}</div>
+        <div><div class="nm">${s.name}<small>${s.role} · ${s.en}</small></div>
+        <div class="pw mono">战力 ${fmtInt(s.power)}</div></div></div>
+      <div class="costs">${costHTML(s.cost)}<span class="cost">⏱ ${s.time}s</span></div>
+      <div class="act"><span class="qn mono">现役 ×${s.qty}</span>
+        <button class="btn ${afford?'':'dis'}" data-build="${k}" ${afford?'':'disabled'}>建造</button></div>
+      <div class="prog" data-prog="${k}">${q?progBar(q):''}</div>
+    </div>`;
+  });
+  h+='</div>';
+  openWin('build','舰船建造','船坞 · 可同时建造多艘',h);
+  $('winBody').querySelectorAll('[data-build]').forEach(btn=>{
+    btn.addEventListener('click',()=>startBuild(btn.dataset.build));
+  });
+}
+function progBar(q){const p=(q.elapsed/q.total*100).toFixed(1);
+  return `<div style="font-size:11px;color:var(--gold1);margin-top:6px">建造中 ${Math.ceil(q.total-q.elapsed)}s</div><div class="timebar"><i style="width:${p}%"></i></div>`;}
+function startBuild(k){
+  const s=SHIPS[k];
+  if(!canAfford(s.cost)){toast('资源不足','warn');return;}
+  Object.keys(s.cost).forEach(r=>G.res[r]-=s.cost[r]);
+  G.build.push({key:k,total:s.time,elapsed:0});
+  refreshRes();sfx('confirm');
+  toast(`开始建造 ${s.name}`,'ok');
+  addLog('sys','系统',`船坞已开始建造 ${s.name}·${s.role}`);
+  panelBuild(); // 刷新
+}
+
+/* ====================== 研究面板 ====================== */
+const TECHS=[
+  {id:'alloyRef', name:'合金精炼',  en:'Alloy Refining', res:'alloy', eff:0.12, base:{alloy:120000,crystal:60000}, time:120, desc:'提升合金采集效率'},
+  {id:'crysRes',  name:'晶体共振',  en:'Crystal Resonance',res:'crystal',eff:0.12,base:{crystal:120000,energy:40000},time:120,desc:'提升晶体提炼速度'},
+  {id:'titanEx',  name:'钛矿勘探',  en:'Titanium Survey',res:'titan',eff:0.12,base:{titan:120000,alloy:50000},time:120,desc:'提升钛矿开采产出'},
+  {id:'fusion',   name:'聚变效率',  en:'Fusion Yield',  res:'energy',eff:0.14,base:{energy:100000,crystal:60000},time:150,desc:'提升能量反应堆输出'},
+  {id:'weapons',  name:'武器系统',  en:'Weapon Systems', power:0.06, base:{alloy:200000,titan:120000,energy:80000},time:260,desc:'全舰队战力 +6% / 级'},
+  {id:'warp',     name:'曲速引擎',  en:'Warp Drive',    warp:0.1,  base:{energy:140000,titan:90000},time:240,desc:'缩短航行时间 10% / 级'},
+];
+function techLevel(id){return G.tech[id]||0;}
+function techCost(t){const lv=techLevel(t.id);const mul=Math.pow(1.6,lv);const c={};Object.keys(t.base).forEach(k=>c[k]=Math.round(t.base[k]*mul));return c;}
+function techTime(t){return Math.round(t.time*Math.pow(1.35,techLevel(t.id)));}
+function panelResearch(){
+  let h='<div class="grid">';
+  TECHS.forEach(t=>{
+    const lv=techLevel(t.id);const cost=techCost(t);const afford=canAfford(cost);
+    const running=G.build.find(b=>b.key==='tech_'+t.id);
+    let effTxt;
+    if(t.power)effTxt=`战力 +${Math.round(t.power*100*(lv))}% → +${Math.round(t.power*100*(lv+1))}%`;
+    else if(t.warp)effTxt=`航速 +${Math.round(t.warp*100*lv)}% → +${Math.round(t.warp*100*(lv+1))}%`;
+    else effTxt=`${RESMAP[t.res].name}产出 +${Math.round(t.eff*100*lv)}% → +${Math.round(t.eff*100*(lv+1))}%`;
+    h+=`<div class="bcard tech">
+      <div class="top"><div style="flex:1"><div class="nm">${t.name} <span class="lvl mono">Lv.${lv}</span><small>${t.en}</small></div></div></div>
+      <div class="eff mono">${effTxt}</div>
+      <div class="desc">${t.desc}</div>
+      <div class="costs">${costHTML(cost)}<span class="cost">⏱ ${techTime(t)}s</span></div>
+      <div class="act"><button class="btn ${afford&&!running?'':'dis'}" data-tech="${t.id}" ${afford&&!running?'':'disabled'}>${running?'研究中…':'研究'}</button></div>
+      <div class="prog" data-techprog="${t.id}">${running?progBar(running):''}</div>
+    </div>`;
+  });
+  h+='</div>';
+  openWin('research','科技研究','研究所 · 永久强化',h);
+  $('winBody').querySelectorAll('[data-tech]').forEach(b=>b.addEventListener('click',()=>startTech(b.dataset.tech)));
+}
+function startTech(id){
+  const t=TECHS.find(x=>x.id===id);const cost=techCost(t);
+  if(!canAfford(cost)){toast('资源不足','warn');return;}
+  if(G.build.find(b=>b.key==='tech_'+id)){toast('该科技正在研究','warn');return;}
+  Object.keys(cost).forEach(r=>G.res[r]-=cost[r]);
+  G.build.push({key:'tech_'+id,total:techTime(t),elapsed:0});
+  refreshRes();sfx('confirm');
+  addLog('sys','系统',`研究所开始研究 ${t.name}`);
+  panelResearch();
+}
+function applyTech(id){
+  const t=TECHS.find(x=>x.id===id);G.tech[id]=(G.tech[id]||0)+1;const lv=G.tech[id];
+  if(t.power){G.powerMul=1;TECHS.filter(x=>x.power).forEach(x=>G.powerMul+=x.power*(G.tech[x.id]||0));}
+  else if(t.warp){G.warpMul=1;TECHS.filter(x=>x.warp).forEach(x=>G.warpMul=Math.max(0.3,1-x.warp*(G.tech[x.id]||0)));}
+  else {G.rateMul[t.res]=1+t.eff*lv;}
+  $('fleetPower').textContent=fmtInt(fleetPower());
+  toast(`${t.name} 提升至 Lv.${lv}`,'ok');
+  gainXP(800);
+}
+
+/* ====================== 贸易面板 ====================== */
+let trFrom='alloy',trTo='crystal';
+function panelTrade(){
+  const tradable=RES.filter(r=>r.id!=='honor');
+  const chips=(sel,attr)=>tradable.map(r=>`<button class="res-chip ${(sel===r.id)?'on':''}" data-${attr}="${r.id}">${resIcon(r,15)}${r.name}</button>`).join('');
+  const h=`<div class="trade-wrap">
+    <div><div class="setrow" style="border:none;padding-bottom:6px"><span class="sl">支付资源</span></div>
+      <div class="sel-res" id="trFrom">${chips(trFrom,'f')}</div></div>
+    <div><div class="setrow" style="border:none;padding:6px 0"><span class="sl">兑换为</span></div>
+      <div class="sel-res" id="trTo">${chips(trTo,'t')}</div></div>
+    <div class="trade-row"><input class="amt-in mono" id="trAmt" type="number" placeholder="支付数量" value="100000"/>
+      <button class="btn gold" id="trGo" style="flex:none;min-width:130px">确认兑换</button></div>
+    <div class="trade-note" id="trNote"></div>
+  </div>`;
+  openWin('trade','资源贸易','星际交易所 · 汇率 1 : 0.8（含 5% 税）',h);
+  bindTrade();updateTradeNote();
+}
+function bindTrade(){
+  $('winBody').querySelectorAll('[data-f]').forEach(b=>b.addEventListener('click',()=>{trFrom=b.dataset.f;if(trTo===trFrom)trTo=RES.find(r=>r.id!==trFrom&&r.id!=='honor').id;panelTrade();}));
+  $('winBody').querySelectorAll('[data-t]').forEach(b=>b.addEventListener('click',()=>{trTo=b.dataset.t;if(trTo===trFrom)trFrom=RES.find(r=>r.id!==trTo&&r.id!=='honor').id;panelTrade();}));
+  $('trAmt').addEventListener('input',updateTradeNote);
+  $('trGo').addEventListener('click',doTrade);
+}
+function updateTradeNote(){
+  const amt=Math.max(0,parseInt($('trAmt').value)||0);
+  const out=Math.floor(amt*0.8);
+  $('trNote').innerHTML=`支付 <b>${fmtInt(amt)}</b> ${RESMAP[trFrom].name}，可获得 <b>${fmtInt(out)}</b> ${RESMAP[trTo].name}。<br>当前持有 ${RESMAP[trFrom].name}：${fmtInt(G.res[trFrom])}`;
+}
+function doTrade(){
+  const amt=Math.max(0,parseInt($('trAmt').value)||0);
+  if(amt<=0){toast('请输入数量','warn');return;}
+  if(G.res[trFrom]<amt){toast('资源不足','warn');return;}
+  G.res[trFrom]-=amt;G.res[trTo]+=Math.floor(amt*0.8);
+  refreshRes();sfx('confirm');updateTradeNote();
+  toast(`兑换成功 +${fmt(Math.floor(amt*0.8))} ${RESMAP[trTo].name}`,'ok');
+  addLog('sys','交易所',`完成一笔资源兑换`);
+}
+
+/* ====================== 星图面板 ====================== */
+const SYSTEMS=[
+  {id:'sirius7', name:'天狼星VII', x:50, y:52, req:0,     reward:{alloy:200000,crystal:150000,honor:200}, time:18, ctl:1.5, unlocked:true,  main:true, label:'前哨站-天狼星VII'},
+  {id:'vega',    name:'织女星域', x:24, y:30, req:60000,  reward:{crystal:400000,energy:200000,honor:350}, time:45, ctl:2.5, unlocked:true,  label:'织女星域 · 资源带'},
+  {id:'altair',  name:'河鼓星团', x:74, y:24, req:90000,  reward:{titan:500000,alloy:300000,honor:500},    time:70, ctl:3,   unlocked:true,  label:'河鼓星团 · 钛矿富集'},
+  {id:'rigel',   name:'参宿七',   x:38, y:74, req:140000, reward:{energy:600000,coin:300000,honor:800},    time:110,ctl:3.5, unlocked:false, label:'参宿七 · 敌占区'},
+  {id:'orion',   name:'猎户座深空',x:82, y:66, req:220000, reward:{alloy:900000,crystal:700000,honor:1500}, time:160,ctl:4,   unlocked:false, label:'猎户座深空 · 未知信号'},
+];
+let mapSel='sirius7';
+function panelMap(){
+  let nodes='',lines='';
+  // 连线（从天狼星出发）
+  const base=SYSTEMS[0];
+  SYSTEMS.slice(1).forEach(s=>{
+    const dx=s.x-base.x,dy=s.y-base.y,len=Math.hypot(dx,dy),ang=Math.atan2(dy,dx)*180/Math.PI;
+    lines+=`<div class="map-line" style="left:${base.x}%;top:${base.y}%;width:${len}%;transform:rotate(${ang}deg)"></div>`;
+  });
+  SYSTEMS.forEach(s=>{
+    const cur=s.id===mapSel?'cur':'';const lk=s.unlocked?'':'locked';
+    nodes+=`<div class="map-node ${cur} ${lk}" data-sys="${s.id}" style="left:${s.x}%;top:${s.y}%">
+      <div class="map-dot"></div><div class="ml">${s.name}</div><div class="mp mono">${s.req?'需战力 '+fmt(s.req):'已控制'}</div></div>`;
+  });
+  const sel=SYSTEMS.find(s=>s.id===mapSel);
+  const fp=fleetPower();const ok=sel.unlocked&&fp>=sel.req;
+  const chance=sel.req?clamp(Math.round((fp/sel.req)*60),20,99):100;
+  const rewardTxt=Object.keys(sel.reward).map(k=>`${RESMAP[k].name} +${fmt(sel.reward[k])}`).join('，');
+  const info=`<div class="map-info">
+    <div><div class="mi-nm">${sel.name}</div>
+      <div class="mi-row">航行时间 <b>${Math.round(sel.time*G.warpMul)}s</b> · 需求战力 <b>${sel.req?fmt(sel.req):'无'}</b> · 成功率 <b>${ok?chance+'%':'—'}</b></div>
+      <div class="mi-row">奖励：${rewardTxt} · 控制率 +${sel.ctl}%</div></div>
+    <div class="spacer"></div>
+    ${sel.unlocked?`<button class="btn gold" id="mapGo" style="flex:none;min-width:120px" ${fp>=sel.req?'':'disabled'}>${fp>=sel.req?'设为目标并出发':'战力不足'}</button>`
+      :`<button class="btn dis" disabled>尚未解锁</button>`}
+  </div>`;
+  openWin('map','星图导航',`当前舰队战力 ${fmtInt(fp)}`,`<div class="map-wrap">${lines}${nodes}${info}</div>`);
+  $('winBody').querySelectorAll('[data-sys]').forEach(n=>n.addEventListener('click',()=>{mapSel=n.dataset.sys;panelMap();}));
+  const go=$('mapGo');if(go)go.addEventListener('click',()=>{setDestination(mapSel);closeWin();launch();});
+}
+function setDestination(id){
+  const s=SYSTEMS.find(x=>x.id===id);G.dest={id:s.id,name:s.label};
+  $('destName').textContent=s.label;
+}
+
+/* ====================== 仓库面板 ====================== */
+function panelWare(){
+  const cap=12000000;
+  let h='<div class="kv-list">';
+  RES.forEach(r=>{
+    const pct=r.id==='honor'?100:clamp(G.res[r.id]/cap*100,0,100);
+    h+=`<div class="kv"><div class="kic">${resIcon(r,22)}</div>
+      <div class="kn">${r.name}<small>${r.en}${r.rate?' · '+fmtRate(r.rate)+'/分钟':' · 声望货币'}</small>
+      ${r.id!=='honor'?`<div class="bar-mini" style="width:160px"><i style="width:${pct}%"></i></div>`:''}</div>
+      <div class="kvv mono">${fmtInt(G.res[r.id])}</div></div>`;
+  });
+  h+='</div>';
+  openWin('ware','资源仓库',`存储上限 ${fmt(cap)} / 类`,h);
+}
+
+/* ====================== 舰队详情面板 ====================== */
+function panelFleet(){
+  let h=`<div style="display:flex;align-items:center;gap:16px;margin-bottom:14px;padding:12px 14px;border-radius:10px;background:linear-gradient(90deg,rgba(40,80,130,.25),transparent);border:1px solid var(--line)">
+    <div><div style="font-size:12px;color:var(--txt-dim)">第一舰队 · 总战力</div>
+    <div class="mono glow-txt" style="font-size:28px;font-weight:700;color:var(--cyan)">${fmtInt(fleetPower())}</div></div>
+    <div class="spacer" style="flex:1"></div>
+    <div style="font-size:12px;color:var(--txt-dim);text-align:right">舰船总数<br><b class="mono" style="color:#cfe6ff;font-size:18px">${SHIP_ORDER.reduce((a,k)=>a+SHIPS[k].qty,0)}</b></div>
+  </div><div class="grid">`;
+  SHIP_ORDER.forEach(k=>{const s=SHIPS[k];
+    h+=`<div class="bcard"><div class="top"><div class="pic">${shipGlyph(k)}</div>
+      <div><div class="nm">${s.name}<small>${s.role}</small></div>
+      <div class="pw mono">单舰战力 ${fmtInt(s.power)}</div></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--txt-dim)">
+        <span>现役 <b class="mono" style="color:var(--gold1)">×${s.qty}</b></span>
+        <span>编队战力 <b class="mono" style="color:var(--cyan)">${fmtInt(s.power*s.qty)}</b></span></div>
+    </div>`;
+  });
+  h+='</div>';
+  openWin('fleet','舰队详情','第一舰队 · 编成',h);
+}
+
+/* ====================== 任务面板 ====================== */
+const QUESTS=[
+  {id:'q1', name:'建立前哨站', desc:'派遣第一舰队前往天狼星VII，建立帝国前哨站，巩固对星域的控制。', target:'sirius7',
+   reward:{alloy:300000,crystal:200000,honor:300}, done:false},
+  {id:'q2', name:'勘探织女星域', desc:'织女星域蕴藏丰富晶体矿脉，派遣舰队前往勘探并建立采集网络。', target:'vega',
+   reward:{crystal:500000,energy:200000,honor:400}, done:false},
+  {id:'q3', name:'夺取河鼓星团', desc:'河鼓星团的钛矿对舰队扩建至关重要，前往夺取控制权。', target:'altair',
+   reward:{titan:600000,alloy:300000,honor:600}, done:false},
+];
+function panelQuest(){
+  let h='<div class="kv-list">';
+  QUESTS.forEach((q,i)=>{
+    const locked=i>0&&!QUESTS[i-1].done;
+    h+=`<div class="kv" style="align-items:flex-start;${q.done?'opacity:.6':''}">
+      <div class="kic" style="margin-top:2px"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="${q.done?'#52e08a':'#e7b94a'}" stroke-width="1.6"><path d="m12 2 2.4 7.4H22l-6 4.4 2.3 7.2L12 16.6 5.7 21l2.3-7.2-6-4.4h7.6Z"/></svg></div>
+      <div class="kn" style="flex:1">${q.name} ${q.done?'<span style="color:#52e08a;font-size:11px">✓ 已完成</span>':locked?'<span style="color:var(--txt-faint);font-size:11px">· 未解锁</span>':''}
+        <small style="line-height:1.5;margin-top:4px">${q.desc}</small>
+        <div style="margin-top:7px;font-size:11.5px;color:var(--green)">奖励：${Object.keys(q.reward).map(k=>RESMAP[k].name+' +'+fmt(q.reward[k])).join('，')}</div>
+        ${(!q.done&&!locked)?`<button class="btn gold" style="margin-top:9px;flex:none;min-width:140px" data-quest="${q.id}">前往目标星域</button>`:''}
+      </div></div>`;
+  });
+  h+='</div>';
+  openWin('quest','任务中心','主线任务',h);
+  $('winBody').querySelectorAll('[data-quest]').forEach(b=>b.addEventListener('click',()=>{
+    const q=QUESTS.find(x=>x.id===b.dataset.quest);setDestination(q.target);closeWin();launch();
+  }));
+}
+
+/* ====================== 联盟 / 邮件 ====================== */
+function panelAlly(){
+  const members=[['星海之翼','R5 · 盟主',1284000],['深空舰队','R4 · 副盟主',986500],['银河边境','R4 · 指挥',742300],['你 · 指挥官','R3 · 精英',fleetPower()],['新星纪元','R2 · 成员',312000]];
+  let h=`<div style="font-size:12.5px;color:var(--txt-dim);margin-bottom:12px;line-height:1.6">联盟【星海之翼】· 成员 48/50 · 联盟战力 <b style="color:var(--cyan)">12.4M</b><br>盟主公告：集结号已发出，全员准备进攻参宿七防线。</div><div class="kv-list">`;
+  members.forEach((m,i)=>{h+=`<div class="kv"><div class="kic" style="font-weight:700;color:var(--gold1);font-size:13px">${i+1}</div>
+    <div class="kn">${m[0]}<small>${m[1]}</small></div><div class="kvv mono">${fmt(m[2])}</div></div>`;});
+  h+='</div>';
+  openWin('ally','星海之翼','联盟成员战力榜',h);
+}
+function panelMail(){
+  const mails=[
+    ['联盟集结令','指挥官 星海之翼','全军于 20:00 集结，目标参宿七，请确认出战。'],
+    ['船坞补给','帝国后勤部','您申请的合金补给已发放，请在仓库查收。'],
+    ['星图更新','深空探测网','检测到猎户座方向异常能量信号，建议派遣侦察舰。'],
+  ];
+  let h='<div class="kv-list">';
+  mails.forEach(m=>{h+=`<div class="kv" style="align-items:flex-start"><div class="kic" style="margin-top:2px"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#7fdcff" stroke-width="1.4"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></div>
+    <div class="kn" style="flex:1">${m[0]}<small style="margin-top:3px">发件人：${m[1]}</small>
+    <div style="margin-top:6px;font-size:12px;color:var(--txt);line-height:1.6">${m[2]}</div></div></div>`;});
+  h+='</div>';
+  $('mailBadge').style.display='none';
+  openWin('mail','指挥官邮箱','3 封新邮件',h);
+}
+
+/* ====================== 设置 ====================== */
+function panelSettings(){
+  const s=G.settings;
+  const h=`
+    <div class="setrow"><div class="sl">界面语言<small>Interface Language</small></div>
+      <div class="seg"><button class="${s.lang==='zh'?'on':''}" data-lang="zh">中文</button><button class="${s.lang==='en'?'on':''}" data-lang="en">EN</button></div></div>
+    <div class="setrow"><div class="sl">音效<small>UI 与战斗音效反馈</small></div>
+      <div class="toggle ${s.sfx?'on':''}" id="tgSfx"></div></div>
+    <div class="setrow"><div class="sl">画质<small>Graphics Quality（需重载场景）</small></div>
+      <div class="seg"><button class="${s.quality==='low'?'on':''}" data-q="low">流畅</button><button class="${s.quality==='med'?'on':''}" data-q="med">均衡</button><button class="${s.quality==='high'?'on':''}" data-q="high">极致</button></div></div>
+    <div class="setrow" style="border:none"><div class="sl">关于<small>STELLAR COMMAND · 星海指挥官</small></div>
+      <div style="font-size:11px;color:var(--txt-faint);text-align:right">单文件 · WebGL<br>v1.0</div></div>`;
+  openWin('set','系统设置','',h);
+  $('tgSfx').addEventListener('click',e=>{s.sfx=!s.sfx;e.target.classList.toggle('on');if(s.sfx)sfx('blip');});
+  $('winBody').querySelectorAll('[data-lang]').forEach(b=>b.addEventListener('click',()=>{setLang(b.dataset.lang);panelSettings();}));
+  $('winBody').querySelectorAll('[data-q]').forEach(b=>b.addEventListener('click',()=>{
+    s.quality=b.dataset.q;sfx('tap');
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, s.quality==='high'?2:s.quality==='med'?1.5:1.1));
+    placeFleet();panelSettings();toast('画质已调整','ok');
+  }));
+}
+
+/* ---- 极简多语言（界面主干）---- */
+const I18N={
+  en:{'主线任务':'MAIN QUEST','查看任务详情':'View Quest','当前星系':'Current System','控制率':'Control','舰队列表':'Fleet List','第一舰队':'1st Fleet','出发':'LAUNCH','目标坐标':'Destination','舰队':'Fleet','建造':'Build','研究':'Research','仓库':'Storage','贸易':'Trade','联盟':'Alliance','任务':'Quests','星图':'Star Map','等级':'LV'}
+};
+function setLang(l){
+  G.settings.lang=l;
+  // 仅切换主干标签，动态内容保持中文（保留对标截图的中文风格）
+  const map={questHd:'主线任务',questBtn:'查看任务详情',sysHd:'当前星系',ctlHd:'控制率',fpHd:'舰队列表',fpNm:'第一舰队',launch:'出发',destHd:'目标坐标'};
+  const t=k=>l==='en'?(I18N.en[k]||k):k;
+  document.querySelector('.quest .hd .t').textContent=t('主线任务');
+  $('questBtn').textContent=t('查看任务详情');
+  document.querySelector('.sys .lbl').textContent=t('当前星系');
+  document.querySelectorAll('.sys .lbl')[1] && (document.querySelectorAll('.sys .lbl')[1].textContent=t('控制率'));
+  document.querySelector('.fp-hd .t').textContent=t('舰队列表');
+  document.querySelector('.fp-sub .nm').textContent=t('第一舰队');
+  $('launchBtn').textContent=B.active?$('launchBtn').textContent:t('出发');
+  document.querySelector('.lp-info .k').textContent=t('目标坐标');
+  // dock
+  DOCK.forEach((b,i)=>{const span=$('dock').children[i].querySelector('span');span.textContent=t(b.name);});
+  toast(l==='en'?'Language: English':'语言：中文','ok');
+}
+
+/* ====================== 出发 / 航行 ====================== */
+function launch(){
+  if(B.active){toast('战斗进行中','warn');return;}
+  const sys=SYSTEMS.find(s=>s.id===G.dest.id)||SYSTEMS[0];
+  const fp=fleetPower();
+  if(fp<sys.req){toast('舰队战力不足，无法前往','warn');return;}
+  $('launchBtn').classList.add('busy');$('launchBtn').textContent='跃迁中';
+  sfx('launch');
+  addLog('sys','系统',`第一舰队跃迁前往 ${sys.name}`);
+  flashEngines();
+  setTimeout(()=>startBattle(sys),360);
+}
+function flashEngines(){
+  ships3d.forEach(s=>{const e=s.grp.userData.engines;if(e)e.forEach(g=>{g.scale.multiplyScalar(1.4);setTimeout(()=>g.scale.multiplyScalar(1/1.4),1800);});});
+}
+function grantVictory(sys){
+  if(!sys)return;
+  // 发奖
+  Object.keys(sys.reward).forEach(k=>G.res[k]+=sys.reward[k]);
+  G.control=clamp(G.control+sys.ctl,0,100);
+  updateControl();
+  refreshRes();
+  // 任务推进
+  const q=QUESTS.find(x=>!x.done && x.target===sys.id);
+  if(q){q.done=true;
+    Object.keys(q.reward).forEach(k=>G.res[k]+=q.reward[k]);refreshRes();
+    addLog('ok','任务',`「${q.name}」完成！获得任务奖励`);
+    toast(`任务完成：${q.name}`,'ok');
+    const next=QUESTS.find(x=>!x.done);
+    if(next){const ns=SYSTEMS.find(s=>s.id===next.target);if(ns){ns.unlocked=true;}
+      $('questName').textContent=next.name;}
+    else{$('questName').textContent='星域已平定';}
+  }
+  // 解锁后续星系
+  SYSTEMS.forEach((s,i)=>{if(i>0 && SYSTEMS[i-1].unlocked && G.control>50)s.unlocked=true;});
+  gainXP(1800);
+  const rwTxt=Object.keys(sys.reward).map(k=>RESMAP[k].name+' +'+fmt(sys.reward[k])).join('，');
+  addLog('ok','系统',`占领 ${sys.name}，获得 ${rwTxt}`);
+  toast(`占领 ${sys.name} · 控制率 +${sys.ctl}%`,'ok');
+}
+function updateControl(){
+  $('ctlPct').textContent=G.control.toFixed(1)+'%';
+  $('ctlFill').style.width=G.control+'%';
+}
+
+/* ====================== 战斗场景 ====================== */
+let battleScene=null, battleCam=null, battleBound=false;
+const B={active:false,over:false,result:false,speed:1,t:0,shake:0,warp:0,sys:null,
+  allies:[],enemies:[],shots:[],fx:[]};
+const bcam={az:-0.9,taz:-0.5,el:0.18,dist:200};
+const B_UP=new THREE.Vector3(0,1,0);
+const bQuat=new THREE.Quaternion();
+const bTmp=new THREE.Vector3();
+
+// 共享弹道/光束资源
+let _boltGeo=null,_beamGeo=null,_BTEX=null;
+function boltGeo(){return _boltGeo||(_boltGeo=new THREE.CylinderGeometry(0.16,0.16,3.6,6));}
+function beamGeo(){return _beamGeo||(_beamGeo=new THREE.CylinderGeometry(0.4,0.4,4,8));}
+const matBoltAlly =new THREE.MeshBasicMaterial({color:0x9fe6ff,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false});
+const matBoltEnemy=new THREE.MeshBasicMaterial({color:0xff8a5a,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false});
+function ringTexture(){
+  const s=128,c=document.createElement('canvas');c.width=c.height=s;const x=c.getContext('2d');
+  const g=x.createRadialGradient(64,64,0,64,64,64);
+  g.addColorStop(0,'rgba(255,232,190,0)');g.addColorStop(0.66,'rgba(255,232,190,0)');
+  g.addColorStop(0.8,'rgba(255,236,200,0.95)');g.addColorStop(0.9,'rgba(255,200,140,0.4)');g.addColorStop(1,'rgba(255,200,140,0)');
+  x.fillStyle=g;x.fillRect(0,0,s,s);return new THREE.CanvasTexture(c);
+}
+function battleTex(){
+  if(_BTEX)return _BTEX;
+  _BTEX={
+    white :glowTexture('rgba(255,255,255,1)','rgba(255,240,210,0)'),
+    orange:glowTexture('rgba(255,214,150,1)','rgba(255,120,40,0)'),
+    cyan  :glowTexture('rgba(190,240,255,1)','rgba(60,150,230,0)'),
+    red   :glowTexture('rgba(255,180,150,1)','rgba(235,70,40,0)'),
+    ring  :ringTexture()
+  };
+  return _BTEX;
+}
+function bspr(tex,color,sc){
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,color,blending:THREE.AdditiveBlending,transparent:true,depthWrite:false}));
+  s.scale.set(sc,sc,1);return s;
+}
+
+function makeBattleBackdrop(){
+  const grp=new THREE.Group();
+  const s1=makeStars(2000,820,0.7,0.85), s2=makeStars(1100,470,1.2,1.0);
+  grp.add(s1);grp.add(s2);grp.userData.stars=[s1,s2];
+  const neb=new THREE.Mesh(new THREE.PlaneGeometry(2600,1500),
+    new THREE.MeshBasicMaterial({map:nebulaTexture(),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,opacity:0.7,side:THREE.DoubleSide}));
+  neb.position.set(80,30,-760);neb.rotation.z=0.15;grp.add(neb);
+  const pl=new THREE.Mesh(new THREE.SphereGeometry(150,48,32),new THREE.MeshStandardMaterial({map:planetTexture(),metalness:0.05,roughness:0.95}));
+  pl.position.set(-300,-200,-460);grp.add(pl);
+  return grp;
+}
+function initBattleScene(){
+  battleScene=new THREE.Scene();
+  battleScene.fog=new THREE.FogExp2(0x05080f,0.0016);
+  battleCam=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.5,5000);
+  const key=new THREE.DirectionalLight(0xfff2dc,2.2);key.position.set(-50,40,60);battleScene.add(key);
+  const fill=new THREE.DirectionalLight(0x4a78b0,0.85);fill.position.set(40,-10,-30);battleScene.add(fill);
+  const rim=new THREE.DirectionalLight(0xff7a5a,0.5);rim.position.set(70,20,-40);battleScene.add(rim);
+  battleScene.add(new THREE.AmbientLight(0x223044,0.85));
+  battleScene.add(new THREE.HemisphereLight(0x4a7ab0,0x0a0e16,0.55));
+  battleScene.userData.backdrop=makeBattleBackdrop();battleScene.add(battleScene.userData.backdrop);
+  battleScene.userData.fleetRoot=new THREE.Group();battleScene.add(battleScene.userData.fleetRoot);
+}
+function disposeObj(o){if(o.material&&o.material.dispose)o.material.dispose();}
+function resetBattleScene(){
+  if(!battleScene)return;
+  const fr=battleScene.userData.fleetRoot;
+  while(fr.children.length){const c=fr.children.pop();c.traverse(o=>{if(o.isSprite)disposeObj(o);});fr.remove(c);}
+  B.shots.forEach(s=>{battleScene.remove(s.mesh);});B.shots.length=0;
+  B.fx.forEach(f=>f.objs.forEach(o=>{battleScene.remove(o);disposeObj(o);}));B.fx.length=0;
+}
+
+// 敌方编队生成（按需求战力）
+function genEnemyFleet(reqPower){
+  const list=[];let budget=Math.max(5000,(reqPower||8000)*1.05);
+  const cost={cruiser:15000,destroyer:8700,frigate:6300,escort:2000};
+  if(budget>26000){list.push('cruiser');budget-=15000;}
+  while(budget>2200 && list.length<7){
+    const r=Math.random();
+    let k = budget>16000&&r<0.22?'cruiser': budget>9000&&r<0.5?'destroyer': r<0.72?'frigate':'escort';
+    list.push(k);budget-=cost[k];
+  }
+  while(list.length<3)list.push('escort');
+  return list;
+}
+
+function makeCombatant(key,enemy,pos,face){
+  const def=SHIPS[key];
+  const cap=(key==='titan'||key==='cruiser');
+  const sc=0.5*(key==='titan'?1.18:key==='fighter'?0.9:1);
+  const grp=buildShip(def, cap, enemy);
+  grp.scale.setScalar(sc);
+  grp.position.copy(pos);grp.rotation.y=face;
+  grp.rotation.z=(Math.random()-0.5)*0.06;
+  battleScene.userData.fleetRoot.add(grp);
+  let hp=Math.round(def.power*0.85+700);
+  if(key==='fighter')hp=420;
+  const shp=key==='fighter'?0:Math.round(hp*(cap?0.5:0.28));
+  const u={key,enemy,grp,hp,maxHp:hp,
+    shield:shp,maxShield:shp,
+    atk:Math.max(50,Math.round(def.power*0.024)),
+    cd:Math.random()*1.2,rof:cap?0.9:(key==='fighter'?0.55:0.75)+Math.random()*0.3,
+    burst:key==='titan'?3:key==='cruiser'?2:1,beam:cap,
+    alive:true,target:null,baseY:pos.y,bob:key==='fighter'?1.3:0.35+Math.random()*0.4,phase:Math.random()*TAU,
+    muzzleLen:def.m.len*0.5*sc+1,span:def.m.wid*sc*0.55};
+  return u;
+}
+function layoutSide(list,enemy){
+  const side=enemy?1:-1, baseX=side*46;
+  list.forEach((k,idx)=>{
+    const row=idx%3, col=(idx/3)|0;
+    const x=baseX+side*col*15+(Math.random()-0.5)*5;
+    const y=(row-1)*15+(Math.random()-0.5)*5;
+    const z=col*-11+(idx%2?9:-9)+(Math.random()-0.5)*7;
+    const u=makeCombatant(k,enemy,new THREE.Vector3(x,y,z),enemy?Math.PI/2:-Math.PI/2);
+    (enemy?B.enemies:B.allies).push(u);
+  });
+}
+function addFighters(enemy,n){
+  const side=enemy?1:-1;
+  for(let i=0;i<n;i++){
+    const u=makeCombatant('fighter',enemy,
+      new THREE.Vector3(side*40+(Math.random()-0.5)*12,(Math.random()-0.5)*26,(Math.random()-0.5)*34),
+      enemy?Math.PI/2:-Math.PI/2);
+    (enemy?B.enemies:B.allies).push(u);
+  }
+}
+function buildPlayerFleet(){
+  const picks=[];
+  SHIP_ORDER.forEach(k=>{
+    if(k==='fighter'||SHIPS[k].qty<=0)return;
+    const n=Math.min(SHIPS[k].qty, k==='titan'?1:2);
+    for(let i=0;i<n;i++)picks.push(k);
+  });
+  if(picks.length===0)picks.push('frigate','escort');
+  while(picks.length>7)picks.pop();
+  layoutSide(picks,false);
+  if(SHIPS.fighter.qty>0)addFighters(false,3);
+}
+function buildEnemyFleet(sys){
+  layoutSide(genEnemyFleet(sys?sys.req:8000),true);
+  addFighters(true,3);
+}
+
+/* ---- 战斗循环 ---- */
+function updateBattle(rdt){
+  const dt=Math.min(0.08,rdt)*B.speed;
+  B.t+=dt;
+  B.dmgMul=B.t<38?1:1+(B.t-38)*0.5; // 久战不决则伤害递增，保证终局
+  if(B.warp>0)B.warp=Math.max(0,B.warp-rdt);
+  updateBattleCamera(rdt);
+  const bd=battleScene.userData.backdrop;
+  bd.userData.stars.forEach((s,i)=>{s.rotation.y+=rdt*0.003*(i+1);if(s.userData.mat)s.userData.mat.uniforms.uTime.value=B.t;});
+  stepUnits(B.allies,B.enemies,dt);
+  stepUnits(B.enemies,B.allies,dt);
+  const all=B.allies.concat(B.enemies);
+  for(const u of all){
+    if(!u.alive)continue;
+    u.grp.position.y=u.baseY+Math.sin(B.t*u.bob+u.phase)*(u.key==='fighter'?1.4:0.6);
+    u.grp.rotation.z=Math.sin(B.t*0.5+u.phase)*0.05;
+    if(u.maxShield>0&&u.shield<u.maxShield&&B.t<38)u.shield=Math.min(u.maxShield,u.shield+u.maxShield*0.02*dt);
+    const e=u.grp.userData.engines;
+    if(e){const p=0.78+Math.sin(B.t*6+u.phase)*0.22;for(const g of e)g.material.opacity=p;}
+  }
+  stepShots(dt);
+  stepFx(dt);
+  if(!B.over)checkBattleEnd();
+  refreshBattleHud();
+}
+function updateBattleCamera(dt){
+  B.shake=Math.max(0,B.shake-dt*1.7);
+  bcam.taz+=dt*0.045;
+  bcam.az=lerp(bcam.az,bcam.taz,0.045);
+  bcam.dist=lerp(bcam.dist,B.warp>0?210:166,0.04);
+  const cx=Math.cos(bcam.az)*Math.cos(bcam.el)*bcam.dist;
+  const cy=Math.sin(bcam.el)*bcam.dist+12;
+  const cz=Math.sin(bcam.az)*Math.cos(bcam.el)*bcam.dist;
+  const k=B.shake;
+  battleCam.position.set(cx+(Math.random()-0.5)*k*7,cy+(Math.random()-0.5)*k*7,cz+(Math.random()-0.5)*k*7);
+  battleCam.lookAt((Math.random()-0.5)*k*3,(Math.random()-0.5)*k*3,0);
+}
+function pickTarget(u,foes){
+  let best=null,bw=1e18;
+  for(const f of foes){if(!f.alive)continue;
+    const d=f.grp.position.distanceToSquared(u.grp.position);
+    const w=d/(1+f.maxHp/2200);
+    if(w<bw){bw=w;best=f;}}
+  return best;
+}
+function stepUnits(side,foes,dt){
+  if(B.warp>0||B.over)return;
+  for(const u of side){
+    if(!u.alive)continue;
+    if(!u.target||!u.target.alive)u.target=pickTarget(u,foes);
+    if(!u.target)continue;
+    u.cd-=dt;
+    if(u.cd<=0){fireWeapon(u,u.target);u.cd=u.rof*(0.85+Math.random()*0.3);}
+  }
+}
+function muzzleOf(u){
+  const dir=u.enemy?-1:1;
+  return new THREE.Vector3(
+    u.grp.position.x+dir*u.muzzleLen,
+    u.grp.position.y+(Math.random()-0.5)*u.span,
+    u.grp.position.z+(Math.random()-0.5)*u.span*1.4);
+}
+function fireWeapon(u,target){
+  const side=u.enemy?'enemy':'ally';
+  if(u.beam){spawnBeam(u,target,side);if(Math.random()<0.5)sfx('laser');return;}
+  for(let b=0;b<u.burst;b++){
+    const from=muzzleOf(u);
+    const m=new THREE.Mesh(boltGeo(),u.enemy?matBoltEnemy:matBoltAlly);
+    m.position.copy(from);
+    battleScene.add(m);
+    B.shots.push({mesh:m,target,dmg:u.atk*B.dmgMul,speed:150,side,life:2.6,enemy:u.enemy});
+  }
+  spawnMuzzle(muzzleOf(u),side);
+  if(Math.random()<0.12)sfx('laser');
+}
+function orientAlong(mesh,dir){bQuat.setFromUnitVectors(B_UP,dir);mesh.quaternion.copy(bQuat);}
+function stepShots(dt){
+  for(let i=B.shots.length-1;i>=0;i--){
+    const s=B.shots[i];s.life-=dt;
+    const tp=(s.target&&s.target.alive)?s.target.grp.position:null;
+    let hit=false;
+    if(tp){
+      bTmp.subVectors(tp,s.mesh.position);
+      const dist=bTmp.length();bTmp.normalize();
+      const step=s.speed*dt;
+      if(dist<=step+1.6){hit=true;}
+      else{s.mesh.position.addScaledVector(bTmp,step);orientAlong(s.mesh,bTmp);}
+    }
+    if(hit||s.life<=0||!tp){
+      if(hit&&s.target&&s.target.alive){
+        const sh=s.target.shield>0;
+        applyDamage(s.target,s.dmg);
+        spawnImpact(s.target.grp.position.clone(),s.target.enemy,sh);
+      }
+      battleScene.remove(s.mesh);B.shots.splice(i,1);
+    }
+  }
+}
+function spawnBeam(u,target,side){
+  const from=muzzleOf(u),to=target.grp.position.clone();
+  const len=from.distanceTo(to),mid=from.clone().lerp(to,0.5);
+  const mat=new THREE.MeshBasicMaterial({color:u.enemy?0xff7a4a:0x8fe0ff,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,opacity:0.95});
+  const beam=new THREE.Mesh(beamGeo(),mat);
+  beam.position.copy(mid);beam.scale.set(1,len/4,1);
+  orientAlong(beam,to.clone().sub(from).normalize());
+  battleScene.add(beam);
+  addFx({t:0,dur:0.2,objs:[beam],up:(f,k)=>{mat.opacity=0.95*(1-k);const w=0.5+(1-k)*1.1;beam.scale.x=w;beam.scale.z=w;}});
+  const sh=target.shield>0;
+  applyDamage(target,u.atk*2.4*B.dmgMul);
+  spawnImpact(to,target.enemy,sh);spawnMuzzle(from,side);
+}
+function spawnMuzzle(pos,side){
+  const T=battleTex();
+  const m=bspr(side==='ally'?T.cyan:T.red,side==='ally'?0xbfeaff:0xffb080,2.6);
+  m.position.copy(pos);battleScene.add(m);
+  addFx({t:0,dur:0.14,objs:[m],up:(f,k)=>{const s=2.6*(1+k);m.scale.set(s,s,1);m.material.opacity=1-k;}});
+}
+function spawnImpact(pos,defenderEnemy,shielded){
+  const T=battleTex();
+  const tex=shielded?(defenderEnemy?T.red:T.cyan):T.orange;
+  const col=shielded?(defenderEnemy?0xff9a7a:0x8fd4ff):0xffe2b0;
+  const fl=bspr(tex,col,3);fl.position.copy(pos);battleScene.add(fl);
+  addFx({t:0,dur:0.3,objs:[fl],up:(f,k)=>{const s=3*(1+k*1.6);fl.scale.set(s,s,1);fl.material.opacity=1-k;}});
+}
+function applyDamage(u,dmg){
+  if(u.shield>0){const a=Math.min(u.shield,dmg);u.shield-=a;dmg-=a;}
+  if(dmg>0)u.hp-=dmg;
+  if(u.hp<=0&&u.alive)destroyUnit(u);
+}
+function destroyUnit(u){
+  u.alive=false;u.grp.visible=false;
+  const sz=u.key==='titan'?3.6:u.key==='cruiser'?2.7:u.key==='fighter'?1.0:1.9;
+  spawnExplosion(u.grp.position.clone(),sz);
+  battleLog(u.enemy?'ok':'warn',(u.enemy?'敌 ':'我 ')+SHIPS[u.key].name+(u.enemy?' 被击毁':' 阵亡'));
+}
+function spawnExplosion(pos,size){
+  const T=battleTex();
+  const flash=bspr(T.white,0xffffff,size*5),fire=bspr(T.orange,0xffd9a0,size*3),ring=bspr(T.ring,0xffe6b8,size*2.4);
+  flash.position.copy(pos);fire.position.copy(pos);ring.position.copy(pos);
+  battleScene.add(flash);battleScene.add(fire);battleScene.add(ring);
+  addFx({t:0,dur:0.95,objs:[flash,fire,ring],up:(f,k)=>{
+    const s1=size*(4+k*3);flash.scale.set(s1,s1,1);flash.material.opacity=Math.max(0,1-k*2.4);
+    const s2=size*(2+k*9);fire.scale.set(s2,s2,1);fire.material.opacity=Math.max(0,0.95*(1-k));
+    const s3=size*(2+k*20);ring.scale.set(s3,s3,1);ring.material.opacity=Math.max(0,0.85*(1-k*1.05));
+  }});
+  for(let i=0;i<8;i++){
+    const e=bspr(T.orange,0xffb060,size*0.8);e.position.copy(pos);
+    const v=new THREE.Vector3(Math.random()-0.5,Math.random()-0.5,Math.random()-0.5).normalize().multiplyScalar(size*(6+Math.random()*11));
+    battleScene.add(e);
+    addFx({t:0,dur:0.55+Math.random()*0.5,objs:[e],vel:v,up:(f,k,dt2)=>{
+      e.position.addScaledVector(f.vel,dt2);f.vel.multiplyScalar(0.95);
+      const sc=size*0.8*(1-k*0.6);e.scale.set(sc,sc,1);e.material.opacity=Math.max(0,1-k);}});
+  }
+  B.shake=Math.min(1.3,B.shake+size*0.11);
+  sfx('boom');
+}
+function addFx(o){B.fx.push(o);}
+function stepFx(dt){
+  for(let i=B.fx.length-1;i>=0;i--){
+    const f=B.fx[i];f.t+=dt;const k=f.t/f.dur;
+    if(k>=1){f.objs.forEach(o=>{battleScene.remove(o);disposeObj(o);});B.fx.splice(i,1);continue;}
+    f.up(f,k,dt);
+  }
+}
+
+/* ---- 战斗 HUD / 流程 ---- */
+const BLOG=[];
+function battleLog(type,text){BLOG.push({type,text});if(BLOG.length>5)BLOG.shift();
+  const el=$('bLog');if(el)el.innerHTML=BLOG.map(l=>`<div class="bl ${l.type==='sys'?'':l.type}">${l.text}</div>`).join('');}
+function sideHp(side){let hp=0,mx=0,alive=0;for(const u of side){mx+=u.maxHp+u.maxShield;hp+=Math.max(0,u.hp)+Math.max(0,u.shield);if(u.alive)alive++;}return{hp,mx,alive,total:side.length};}
+function refreshBattleHud(){
+  const a=sideHp(B.allies),e=sideHp(B.enemies);
+  $('bAllyFill').style.width=(a.mx?a.hp/a.mx*100:0)+'%';
+  $('bEnemyFill').style.width=(e.mx?e.hp/e.mx*100:0)+'%';
+  $('bAllyCount').textContent=a.alive+' / '+a.total;
+  $('bEnemyCount').textContent=e.alive+' / '+e.total;
+}
+function setBattleSpeed(s){
+  B.speed=s;
+  $('bSpeed').querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.spd===s));
+}
+function bindBattleUI(){
+  if(battleBound)return;battleBound=true;
+  $('bSpeed').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{sfx('tap');setBattleSpeed(+b.dataset.spd);}));
+  $('bRetreat').addEventListener('click',()=>{sfx('tap');if(!B.over)endBattle(false,true);});
+  $('bReturn').addEventListener('click',()=>{sfx('confirm');exitBattle();});
+}
+function checkBattleEnd(){
+  const aAlive=B.allies.some(u=>u.alive), eAlive=B.enemies.some(u=>u.alive);
+  if(!eAlive)endBattle(true);
+  else if(!aAlive)endBattle(false);
+}
+function endBattle(win,retreat){
+  if(B.over)return;
+  B.over=true;B.result=win;
+  battleLog(win?'ok':'warn',win?'敌方舰队已全歼，战场肃清！':(retreat?'已下令撤退，舰队脱离战斗…':'我方舰队失去战斗力…'));
+  sfx(win?'reward':'warn');
+  setTimeout(()=>showBattleResult(win),win?1000:700);
+}
+function showBattleResult(win){
+  const kills=B.enemies.filter(u=>!u.alive).length;
+  const losses=B.allies.filter(u=>!u.alive).length;
+  $('bCard').className='b-card '+(win?'win':'lose');
+  $('bResultTitle').textContent=win?'胜  利':'撤  退';
+  $('bResultSub').textContent=win?'敌方舰队已被全歼':'舰队已脱离战场';
+  $('bStatKill').textContent=kills;
+  $('bStatLoss').textContent=losses;
+  $('bStatTime').textContent=Math.round(B.t)+'s';
+  if(win&&B.sys){
+    const rw=Object.keys(B.sys.reward).map(k=>RESMAP[k].name+' +'+fmt(B.sys.reward[k])).join('　');
+    $('bRewards').innerHTML='战利品：'+rw+'<br>控制率 +'+B.sys.ctl+'%　舰队已修复归队';
+    grantVictory(B.sys);
+  }else{
+    G.res.honor+=30;refreshRes();
+    $('bRewards').innerHTML='<span style="color:var(--txt-dim)">未占领星系　舰队已撤回维修　荣誉 +30</span>';
+  }
+  $('bReturn').textContent=win?'返回指挥中心':'返回指挥中心';
+  $('bResult').classList.add('show');
+}
+function startBattle(sys){
+  if(B.active)return;
+  if(!battleScene)initBattleScene();else resetBattleScene();
+  bindBattleUI();
+  B.active=true;B.over=false;B.result=false;B.speed=1;B.t=0;B.shake=0;B.warp=1.1;B.sys=sys;B.dmgMul=1;
+  B.allies=[];B.enemies=[];B.shots=[];B.fx=[];BLOG.length=0;
+  buildPlayerFleet();buildEnemyFleet(sys);
+  bcam.az=-1.05;bcam.taz=-0.5;bcam.el=0.16;bcam.dist=205;
+  setBattleSpeed(1);
+  $('bResult').classList.remove('show');
+  $('bSub').textContent='遭遇战 · '+(sys?sys.name:'未知空域');
+  battleLog('sys','跃迁完成，进入战斗空域！');
+  battleLog('sys','侦测到敌方舰队，全舰进入战斗状态');
+  G.mode='battle';
+  $('hud').style.display='none';
+  $('battle').classList.add('show');
+  refreshBattleHud();
+}
+function exitBattle(){
+  B.active=false;G.mode='command';
+  $('battle').classList.remove('show');
+  $('bResult').classList.remove('show');
+  $('hud').style.display='';
+  $('launchBtn').classList.remove('busy');
+  $('launchBtn').textContent=G.settings.lang==='en'?'LAUNCH':'出发';
+  buildFleetList();$('fleetPower').textContent=fmtInt(fleetPower());
+  resetBattleScene();
+}
+
+/* ====================== 经验/升级 ====================== */
+function gainXP(n){
+  G.xp+=n;
+  while(G.xp>=G.xpMax){G.xp-=G.xpMax;G.level++;G.xpMax=Math.round(G.xpMax*1.12);
+    addLog('ok','系统',`指挥官晋升至 等级 ${G.level}！`);toast(`等级提升 → Lv.${G.level}`,'ok');
+    // 升级奖励
+    Object.keys(G.res).forEach(k=>{if(k!=='honor')G.res[k]+=G.xpMax*2;});
+    G.res.honor+=200;
+  }
+  $('lvNum').textContent=G.level;
+  $('xpFill').style.width=(G.xp/G.xpMax*100)+'%';
+  $('xpTxt').textContent=`${fmtInt(G.xp)} / ${fmtInt(G.xpMax)}`;
+  refreshRes();
+}
+
+/* ====================== 日志 ====================== */
+const LOGS=[];
+function addLog(type,tag,text){
+  LOGS.push({type,tag,text});
+  if(LOGS.length>4)LOGS.shift();
+  const box=$('log');box.innerHTML='';
+  LOGS.forEach(l=>{
+    const d=document.createElement('div');d.className='logline';
+    d.innerHTML=`<span class="tag ${l.type}">[${l.tag}]</span>${l.text}`;
+    box.appendChild(d);
+  });
+}
+
+/* ====================== 浮动提示 ====================== */
+function toast(msg,type){
+  const box=$('toast');if(!box)return;
+  const d=document.createElement('div');
+  d.className='tmsg '+(type==='warn'?'warn':'ok');
+  const ico=type==='warn'
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>';
+  d.innerHTML=ico+'<span>'+msg+'</span>';
+  box.appendChild(d);
+  setTimeout(()=>{if(d.parentNode)d.parentNode.removeChild(d);},3000);
+}
+
+/* ====================== 音效（极简合成）====================== */
+let actx=null;
+function sfx(type){
+  if(!G.settings.sfx)return;
+  try{
+    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    if(actx.state==='suspended')actx.resume();
+    const o=actx.createOscillator(),g=actx.createGain();
+    o.connect(g);g.connect(actx.destination);
+    const now=actx.currentTime;
+    const presets={tap:[440,0.06,'sine',0.05],blip:[660,0.05,'triangle',0.04],
+      confirm:[520,0.12,'sine',0.06],launch:[160,0.5,'sawtooth',0.08],reward:[784,0.25,'triangle',0.06],
+      boom:[120,0.42,'sawtooth',0.10],laser:[1300,0.07,'square',0.028],warn:[300,0.2,'triangle',0.06],hit:[520,0.06,'square',0.03]};
+    const p=presets[type]||presets.tap;
+    o.type=p[2];o.frequency.setValueAtTime(p[0],now);
+    if(type==='launch')o.frequency.exponentialRampToValueAtTime(60,now+p[1]);
+    if(type==='boom')o.frequency.exponentialRampToValueAtTime(40,now+p[1]);
+    if(type==='laser')o.frequency.exponentialRampToValueAtTime(420,now+p[1]);
+    if(type==='reward')o.frequency.setValueAtTime(1046,now+0.12);
+    g.gain.setValueAtTime(p[3],now);g.gain.exponentialRampToValueAtTime(0.0001,now+p[1]);
+    o.start(now);o.stop(now+p[1]+0.02);
+  }catch(e){}
+}
+
+/* ====================== 游戏主循环（逻辑）====================== */
+function tick(dt){
+  // 资源累积（rate 视为每分钟）
+  RES.forEach(r=>{if(r.rate){const mul=G.rateMul[r.id]||1;G.res[r.id]+=r.rate*mul*dt/60;}});
+  // 建造 / 研究队列
+  for(let i=G.build.length-1;i>=0;i--){
+    const b=G.build[i];b.elapsed+=dt;
+    // 更新弹窗内进度条（若打开）
+    const pe=$('winBody')&&$('winBody').querySelector(`[data-prog="${b.key}"]`);
+    const te=$('winBody')&&$('winBody').querySelector(`[data-techprog="${b.key.replace('tech_','')}"]`);
+    if(pe&&b.key.indexOf('tech_')!==0)pe.innerHTML=progBar(b);
+    if(te&&b.key.indexOf('tech_')===0)te.innerHTML=progBar(b);
+    if(b.elapsed>=b.total){
+      G.build.splice(i,1);
+      if(b.key.indexOf('tech_')===0){applyTech(b.key.replace('tech_',''));
+        if($('modal').classList.contains('show')&&$('modal').dataset.panel==='research')panelResearch();}
+      else{SHIPS[b.key].qty++;
+        $('fleetPower').textContent=fmtInt(fleetPower());
+        buildFleetList();
+        addLog('ok','系统',`新舰下线：${SHIPS[b.key].name}·${SHIPS[b.key].role} 加入第一舰队`);
+        toast(`${SHIPS[b.key].name} 建造完成`,'ok');gainXP(300);
+        if($('modal').classList.contains('show')&&$('modal').dataset.panel==='build')panelBuild();}
+    }
+  }
+  refreshRes();
+}
+
+/* ====================== 绑定 & 启动 ====================== */
+function bindUI(){
+  buildResStrip();buildFleetList();buildDock();
+  // 关闭：收起右侧舰队栏并显示重开标签
+  $('fleetClose').addEventListener('click',()=>{sfx('tap');$('fleetpanel').classList.add('hidden');$('fleetReopen').classList.add('show');});
+  $('fleetReopen').addEventListener('click',()=>{sfx('tap');$('fleetpanel').classList.remove('hidden');$('fleetReopen').classList.remove('show');});
+  $('questBtn').addEventListener('click',()=>{sfx('tap');openPanel('quest');});
+  $('questCard').addEventListener('click',e=>{if(e.target.id!=='questBtn'){sfx('tap');openPanel('quest');}});
+  $('launchBtn').addEventListener('click',()=>{sfx('tap');launch();});
+  $('mailBtn').addEventListener('click',()=>{sfx('tap');openPanel('mail');});
+  $('chatBtn').addEventListener('click',()=>{sfx('tap');toast('频道功能即将开放','ok');});
+  $('allyBtn').addEventListener('click',()=>{sfx('tap');openPanel('ally');});
+  $('setBtn').addEventListener('click',()=>{sfx('tap');openPanel('set');});
+  $('commanderBtn').addEventListener('click',()=>{sfx('tap');openPanel('set');});
+  updateControl();
+}
+
+// 载入动画
+const loadSteps=['初始化星图引擎…','生成行星地表…','装配舰队几何…','点亮恒星…','建立指挥链路…','就绪'];
+let ls=0;
+function fakeLoad(){
+  setLoad((ls/(loadSteps.length-1))*100,loadSteps[ls]);
+  ls++;
+  if(ls<loadSteps.length)setTimeout(fakeLoad,260);
+  else setTimeout(()=>{loader.classList.add('gone');setTimeout(()=>loader.style.display='none',650);},350);
+}
+
+function boot(){
+  try{
+    initScene();
+    bindUI();
+    requestAnimationFrame(animate);
+    // 逻辑 tick
+    let prev=performance.now();
+    setInterval(()=>{const n=performance.now();const dt=(n-prev)/1000;prev=n;tick(Math.min(0.5,dt));},120);
+    // 初始日志
+    addLog('al','联盟','指挥官 星海之翼：集结号已发出，请各位准备');
+    addLog('sys','系统','您的舰队已抵达目的地');
+    fakeLoad();
+  }catch(err){
+    console.error(err);
+    document.getElementById('err').style.display='flex';
+    document.getElementById('err').querySelector('.et').textContent='场景初始化失败';
+    document.getElementById('err').querySelector('.ed').textContent=String(err&&err.message||err);
+    loader.style.display='none';
+  }
+}
+boot();
+
+})();
+</script>
+</body>
+</html>
